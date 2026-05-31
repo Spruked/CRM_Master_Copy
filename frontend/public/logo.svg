@@ -1,0 +1,23 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="purpleGrad" x1="20%" y1="20%" x2="80%" y2="80%" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="30%" y1="70%" x2="80%" y2="30%" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#67e8f9"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <circle cx="60" cy="60" r="48" stroke="url(#purpleGrad)" stroke-width="6" stroke-opacity="0.9" fill="none" filter="url(#glow)"/>
+  <circle cx="60" cy="60" r="38" stroke="url(#cyanGrad)" stroke-width="3" stroke-opacity="0.6" fill="none"/>
+  <path d="M60 25 Q32 25 32 60 Q32 95 60 95 Q78 95 85 75" stroke="white" stroke-width="18" stroke-linecap="round" fill="none" stroke-linejoin="round"/>
+  <path d="M60 25 Q32 25 32 60 Q32 95 60 95" stroke="#e0e7ff" stroke-width="8" stroke-linecap="round" fill="none" stroke-opacity="0.4"/>
+</svg>
