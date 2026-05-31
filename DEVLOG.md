@@ -40,3 +40,14 @@
   - mesh/manifest valid
   - CRM tools available and working (`orb.crm.contacts.search`, `orb.crm.pipeline.status`)
   - authority contract preserved (CRM contact authority, Prime Mail mail authority, ORB operator layer)
+
+### Repo Hardening (Fresh GitHub Instance)
+- Confirmed standalone repo remote:
+  - `origin` -> `https://github.com/Spruked/CRM_Master_Copy.git`
+- Added root `.gitignore` to prevent tracking runtime/editor/dependency artifacts.
+- Removed tracked generated content from index:
+  - `node_modules/`
+  - `.vscode/`
+  - `.startup_initialized`
+  - `_tmp_contacts_import.csv`
+- Preserved source and template files (`.env.example`, `frontend/.env.example`) while keeping secret/runtime `.env*` ignored.
