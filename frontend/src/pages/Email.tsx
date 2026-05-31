@@ -85,7 +85,7 @@ export default function Email() {
         action={
           <Button variant="primary" onClick={() => sync.mutate()} disabled={sync.isPending}>
             <RefreshCcw className="size-4" />
-            Sync to CRM
+            Sync Mail
           </Button>
         }
       />

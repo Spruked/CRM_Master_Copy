@@ -6,13 +6,13 @@ import type { Pipeline, PipelineItem } from '@/types'
 type PipelineWithItems = Omit<Pipeline, 'leads'> & { leads: PipelineItem[] }
 
 export const pipelineStages = [
-  { id: 'prospect', label: 'Prospect', color: 'bg-zinc-700' },
-  { id: 'qualified', label: 'Qualified', color: 'bg-sky-700' },
-  { id: 'contacted', label: 'Contacted', color: 'bg-indigo-700' },
-  { id: 'meeting_scheduled', label: 'Meeting', color: 'bg-violet-700' },
-  { id: 'proposal', label: 'Proposal', color: 'bg-amber-700' },
-  { id: 'won', label: 'Won', color: 'bg-emerald-700' },
-  { id: 'lost', label: 'Lost', color: 'bg-red-800' },
+  { id: 'prospect', label: 'Prospect', color: 'bg-slate-700' },
+  { id: 'qualified', label: 'Qualified', color: 'bg-blue-700' },
+  { id: 'contacted', label: 'Contacted', color: 'bg-cyan-500' },
+  { id: 'meeting_scheduled', label: 'Meeting', color: 'bg-violet-600' },
+  { id: 'proposal', label: 'Proposal', color: 'bg-indigo-600' },
+  { id: 'won', label: 'Won', color: 'bg-teal-500' },
+  { id: 'lost', label: 'Lost', color: 'bg-slate-500' },
 ] as const
 
 export function usePipeline() {

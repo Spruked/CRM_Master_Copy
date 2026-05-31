@@ -31,11 +31,11 @@ function App() {
           <AnimatePresence mode="wait">
             {showSplash ? <SplashScreen onComplete={completeSplash} /> : null}
           </AnimatePresence>
-          <div className="flex h-screen overflow-hidden bg-zinc-950 text-zinc-100">
+          <div className="flex h-screen overflow-hidden bg-[#0b0f2a] text-zinc-100">
             <Sidebar onTokenClick={() => setAuthOpen(true)} />
             <div className="flex min-w-0 flex-1 flex-col">
               <Topbar onTokenClick={() => setAuthOpen(true)} />
-              <main className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,#18181b_0,#09090b_42rem)] p-5">
+              <main className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#17306d_0%,#122757_38%,#0b0f2a_100%)] p-5">
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/contacts" element={<Contacts />} />

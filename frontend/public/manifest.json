@@ -1,27 +1,27 @@
 {
-  "name": "Cali CRM",
-  "short_name": "Cali",
+  "name": "CALI CRM",
+  "short_name": "CALI",
   "description": "Pipeline Intelligence. Orbit Faster. - Your AI-powered revenue command center",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#09090b",
-  "theme_color": "#7c3aed",
+  "background_color": "#0b0f2a",
+  "theme_color": "#1d4ed8",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
+      "src": "/CalilogoCRM.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/CalilogoCRM.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/CalilogoCRM.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

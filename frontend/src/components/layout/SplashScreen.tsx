@@ -23,12 +23,12 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-zinc-950"
+        className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-[#0b0f2a]"
         initial={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(#4f46e510_1px,transparent_1px)] bg-[length:40px_40px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.18),transparent_34rem)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(#1d4ed820_1px,transparent_1px)] bg-[length:40px_40px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,194,255,0.18),transparent_34rem)]" />
 
         <div className="relative z-10 flex flex-col items-center text-center">
           <motion.div
@@ -37,9 +37,9 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
             transition={{ duration: 0.65, ease: 'easeOut' }}
             className="relative mb-8"
           >
-            <img src="/logo.svg" alt="Cali CRM" className="size-32 drop-shadow-[0_0_60px_rgb(168,85,247)]" />
+            <img src="/CalilogoCRM.png" alt="CALI CRM" className="size-32 rounded-xl object-cover drop-shadow-[0_0_60px_rgb(0,194,255)]" />
             <motion.div
-              className="absolute inset-0 rounded-full border border-violet-500/30"
+              className="absolute inset-0 rounded-full border border-[#7c3aed]/40"
               animate={{ rotate: 360 }}
               transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
             />
@@ -63,7 +63,7 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mb-8 text-lg tracking-[4px] text-violet-400"
+            className="mb-8 text-lg tracking-[4px] text-cyan-300"
           >
             CRM
           </motion.p>
@@ -72,7 +72,7 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.42 }}
-            className="mb-12 max-w-md text-xl leading-tight text-zinc-400"
+            className="mb-12 max-w-md text-xl leading-tight text-cyan-100/70"
           >
             Pipeline Intelligence.
             <br />
@@ -80,14 +80,14 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
           </motion.p>
 
           <div className="w-80">
-            <div className="mb-3 h-1 overflow-hidden rounded-full bg-zinc-800">
+            <div className="mb-3 h-1 overflow-hidden rounded-full bg-[#1f2937]">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400"
+                className="h-full rounded-full bg-gradient-to-r from-[#7c3aed] via-[#1d4ed8] to-[#00d2b5]"
                 initial={{ width: '0%' }}
                 animate={{ width: `${progress}%` }}
               />
             </div>
-            <div className="flex justify-between text-xs text-zinc-500">
+            <div className="flex justify-between text-xs text-cyan-100/60">
               <span>INITIALIZING ORB CORE</span>
               <span>{Math.floor(progress)}%</span>
             </div>
@@ -97,13 +97,13 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
             initial={{ opacity: 0 }}
             animate={{ opacity: [0.4, 1, 0.4] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="mt-12 text-[10px] tracking-widest text-zinc-600"
+            className="mt-12 text-[10px] tracking-widest text-cyan-100/45"
           >
             YOUR AI-POWERED REVENUE COMMAND CENTER
           </motion.p>
         </div>
 
-        <div className="absolute bottom-8 right-8 font-mono text-xs text-zinc-700">v2026.05</div>
+        <div className="absolute bottom-8 right-8 font-mono text-xs text-cyan-100/35">v2026.05</div>
       </motion.div>
     </AnimatePresence>
   )

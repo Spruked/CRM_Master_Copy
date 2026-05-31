@@ -5,9 +5,9 @@ type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 type ButtonSize = 'sm' | 'md' | 'icon'
 
 const variants: Record<ButtonVariant, string> = {
-  primary: 'border-transparent bg-white text-zinc-950 hover:bg-zinc-200',
-  secondary: 'border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800',
-  ghost: 'border-transparent bg-transparent text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100',
+  primary: 'border-cyan-400/30 bg-gradient-to-r from-[#1d4ed8] via-[#00c2ff] to-[#00d2b5] text-white hover:brightness-110',
+  secondary: 'border-blue-900/70 bg-[#0f1b3d] text-zinc-100 hover:bg-[#162754]',
+  ghost: 'border-transparent bg-transparent text-cyan-200 hover:bg-[#10224f] hover:text-cyan-100',
   danger: 'border-red-950 bg-red-950/40 text-red-200 hover:bg-red-950/70',
 }
 

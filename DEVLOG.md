@@ -5,7 +5,7 @@
 ### Startup + Runtime Reliability
 - Added/verified launcher flow via `start_cali_crm.bat`:
   - first-run desktop shortcut (`CALI CRM.lnk`)
-  - first-run icon generation from `CLAI CRMLOGO.png`
+  - first-run icon generation from `CALI CRMLOGO.png` (fallback to legacy `CLAI CRMLOGO.png`)
   - Windows logon auto-start registration (`CALI_CRM_Autostart`)
 - Verified runtime after restart:
   - CRM API `http://127.0.0.1:21000/health`

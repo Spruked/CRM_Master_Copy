@@ -4,10 +4,10 @@ import { cn } from '@/lib/utils'
 type BadgeVariant = 'default' | 'success' | 'warning' | 'muted'
 
 const variants: Record<BadgeVariant, string> = {
-  default: 'border-zinc-700 bg-zinc-900 text-zinc-200',
-  success: 'border-emerald-900 bg-emerald-950/50 text-emerald-200',
-  warning: 'border-amber-900 bg-amber-950/50 text-amber-200',
-  muted: 'border-zinc-800 bg-zinc-950 text-zinc-500',
+  default: 'border-blue-900/70 bg-[#10224f] text-cyan-100',
+  success: 'border-teal-700/60 bg-teal-950/40 text-teal-200',
+  warning: 'border-violet-700/60 bg-violet-950/40 text-violet-200',
+  muted: 'border-slate-700 bg-slate-900/70 text-slate-300',
 }
 
 export function Badge({

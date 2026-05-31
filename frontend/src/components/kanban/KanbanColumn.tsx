@@ -27,8 +27,8 @@ export function KanbanColumn({
         ref={setNodeRef}
         className={
           isOver
-            ? 'flex min-h-[32rem] flex-1 flex-col gap-3 rounded-b-lg border border-t-0 border-zinc-600 bg-zinc-900/70 p-3'
-            : 'flex min-h-[32rem] flex-1 flex-col gap-3 rounded-b-lg border border-t-0 border-zinc-800 bg-black/25 p-3'
+            ? 'flex min-h-[32rem] flex-1 flex-col gap-3 rounded-b-lg border border-t-0 border-cyan-400/50 bg-[#122757]/80 p-3'
+            : 'flex min-h-[32rem] flex-1 flex-col gap-3 rounded-b-lg border border-t-0 border-blue-900/70 bg-[#0f1b3d]/75 p-3'
         }
       >
         {items.map((item) => (
