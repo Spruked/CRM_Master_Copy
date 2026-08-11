@@ -52,12 +52,16 @@ export default function Email() {
   useEffect(() => {
     updateCRMContext({
       currentView: 'email',
-      activeFilters: { folder, search },
+      activeFilters: {
+        folder,
+        search,
+        selectedEmailId: selected?.id || null,
+        selectedSender: selectedSenderEmail || null,
+      },
       unreadEmails,
       lastAction: selected ? `selected_email:${selected.id}` : 'email_loaded',
-      selectedEmail: selected,
     })
-  }, [folder, search, unreadEmails, selected])
+  }, [folder, search, unreadEmails, selected, selectedSenderEmail])
 
   const sync = useMutation({
     mutationFn: async () => api.post('/cali/crm/external-email/sync', { folder, limit: 75, search: search || undefined }),
