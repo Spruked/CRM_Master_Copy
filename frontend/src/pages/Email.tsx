@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { MailPlus, RefreshCcw, Search, Send, Star } from 'lucide-react'
+import { ExternalLink, MailPlus, RefreshCcw, Search, Send, Star, UserRound } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { SectionHeader } from '@/components/SectionHeader'
 import { Badge } from '@/components/ui/badge'
@@ -17,9 +18,18 @@ import { compactDate } from '@/lib/utils'
 import type { EmailMessage } from '@/types'
 
 const folders = ['inbox', 'sent', 'starred', 'archive', 'trash']
+const primeMailUrl = String(import.meta.env.VITE_PRIME_MAIL_URL || 'http://127.0.0.1:19000').replace(/\/$/, '')
+
+function extractEmail(value = '') {
+  const angle = value.match(/<([^>]+)>/)
+  if (angle?.[1]) return angle[1].trim().toLowerCase()
+  const plain = value.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)
+  return (plain?.[0] || '').trim().toLowerCase()
+}
 
 export default function Email() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [folder, setFolder] = useState('inbox')
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<EmailMessage | null>(null)
@@ -37,6 +47,7 @@ export default function Email() {
 
   const messages = useMemo(() => messagesQuery.data?.emails || messagesQuery.data?.messages || [], [messagesQuery.data])
   const unreadEmails = useMemo(() => messages.filter((message) => !message.read).length, [messages])
+  const selectedSenderEmail = extractEmail(selected?.sender || '')
 
   useEffect(() => {
     updateCRMContext({
@@ -44,6 +55,7 @@ export default function Email() {
       activeFilters: { folder, search },
       unreadEmails,
       lastAction: selected ? `selected_email:${selected.id}` : 'email_loaded',
+      selectedEmail: selected,
     })
   }, [folder, search, unreadEmails, selected])
 
@@ -77,31 +89,48 @@ export default function Email() {
     send.mutate()
   }
 
+  function openPrimeMail() {
+    const params = new URLSearchParams()
+    if (selected?.id) params.set('message', String(selected.id))
+    if (selectedSenderEmail) params.set('contact', selectedSenderEmail)
+    window.open(`${primeMailUrl}${params.toString() ? `/?${params}` : ''}`, '_blank', 'noopener,noreferrer')
+  }
+
+  function openSenderDossier() {
+    if (!selectedSenderEmail) return
+    navigate(`/contacts?email=${encodeURIComponent(selectedSenderEmail)}`)
+  }
+
   return (
     <div>
       <SectionHeader
         title="Email"
-        detail="Prime Mail inbox surfaced inside CRM with sync, triage, and outbound request hooks."
+        detail="PRIME MAIL surfaced inside CALI CRM for sync, triage, contact context, and outbound handoff."
         action={
-          <Button variant="primary" onClick={() => sync.mutate()} disabled={sync.isPending}>
-            <RefreshCcw className="size-4" />
-            Sync Mail
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={openPrimeMail}>
+              <ExternalLink className="size-4" />
+              Open PRIME MAIL
+            </Button>
+            <Button variant="primary" onClick={() => sync.mutate()} disabled={sync.isPending}>
+              <RefreshCcw className="size-4" />
+              Sync Mail
+            </Button>
+          </div>
         }
       />
 
-      <div className="grid gap-5 xl:grid-cols-[1fr_25rem]">
-        <Card>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_25rem]">
+        <Card className="min-w-0">
           <CardHeader>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <CardTitle>Mailbox</CardTitle>
-              <div className="flex gap-2">
+              <div>
+                <CardTitle>Mailbox</CardTitle>
+                <div className="mt-1 text-xs text-zinc-500">{messages.length} loaded · {unreadEmails} unread</div>
+              </div>
+              <div className="flex flex-wrap gap-2">
                 <Select value={folder} onChange={(event) => setFolder(event.target.value)}>
-                  {folders.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
+                  {folders.map((item) => <option key={item} value={item}>{item}</option>)}
                 </Select>
                 <div className="relative w-72 max-w-full">
                   <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-600" />
@@ -115,39 +144,29 @@ export default function Email() {
               <div className="overflow-x-auto">
                 <Table>
                   <thead>
-                    <tr>
-                      <Th></Th>
-                      <Th>Sender</Th>
-                      <Th>Subject</Th>
-                      <Th>Folder</Th>
-                      <Th>Date</Th>
-                    </tr>
+                    <tr><Th></Th><Th>Sender</Th><Th>Subject</Th><Th>Folder</Th><Th>Date</Th></tr>
                   </thead>
                   <tbody>
-                    {messages.map((message) => (
-                      <tr
-                        key={message.id}
-                        className="cursor-pointer transition hover:bg-zinc-900/40"
-                        onClick={() => setSelected(message)}
-                      >
-                        <Td>
-                          <button type="button" onClick={(event) => {
-                            event.stopPropagation()
-                            toggleStar.mutate(message)
-                          }}>
-                            <Star className={message.starred ? 'size-4 fill-amber-300 text-amber-300' : 'size-4 text-zinc-600'} />
-                          </button>
-                        </Td>
-                        <Td>{message.sender || 'Unknown'}</Td>
-                        <Td>
-                          <div className="max-w-xl truncate text-zinc-100">{message.subject || '(no subject)'}</div>
-                        </Td>
-                        <Td>
-                          <Badge variant="muted">{message.folder || folder}</Badge>
-                        </Td>
-                        <Td>{compactDate(message.date)}</Td>
-                      </tr>
-                    ))}
+                    {messages.map((message) => {
+                      const isSelected = selected?.id === message.id
+                      return (
+                        <tr
+                          key={message.id}
+                          className={`cursor-pointer transition ${isSelected ? 'bg-blue-950/35 ring-1 ring-inset ring-blue-500/30' : 'hover:bg-zinc-900/40'}`}
+                          onClick={() => setSelected(message)}
+                        >
+                          <Td>
+                            <button type="button" onClick={(event) => { event.stopPropagation(); toggleStar.mutate(message) }}>
+                              <Star className={message.starred ? 'size-4 fill-amber-300 text-amber-300' : 'size-4 text-zinc-600'} />
+                            </button>
+                          </Td>
+                          <Td><div className="max-w-64 truncate">{message.sender || 'Unknown'}</div></Td>
+                          <Td><div className="max-w-xl truncate font-medium text-zinc-100">{message.subject || '(no subject)'}</div></Td>
+                          <Td><Badge variant="muted">{message.folder || folder}</Badge></Td>
+                          <Td>{compactDate(message.date)}</Td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </Table>
               </div>
@@ -157,36 +176,45 @@ export default function Email() {
           </CardContent>
         </Card>
 
-        <div className="flex flex-col gap-5">
-          <Card>
-            <CardHeader>
-              <CardTitle>Message Detail</CardTitle>
-            </CardHeader>
-            <CardContent>
+        <div className="flex min-w-0 flex-col gap-5">
+          <div className="overflow-hidden rounded-xl border border-blue-500/25 bg-[#0d1528] shadow-xl shadow-black/20">
+            <div className="border-b border-blue-500/20 bg-[#111d37] px-4 py-3">
+              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-blue-400">Mail Context</div>
+              <div className="mt-1 text-xs text-zinc-500">PRIME MAIL ↔ CALI CRM</div>
+            </div>
+            <div className="p-4">
               {selected ? (
-                <div className="flex flex-col gap-3 text-sm">
+                <div className="flex flex-col gap-4 text-sm">
                   <div>
-                    <div className="text-xs uppercase text-zinc-500">From</div>
-                    <div className="text-zinc-200">{selected.sender || 'Unknown'}</div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">From</div>
+                    <div className="mt-1 break-all text-zinc-200">{selected.sender || 'Unknown'}</div>
                   </div>
                   <div>
-                    <div className="text-xs uppercase text-zinc-500">Subject</div>
-                    <div className="text-zinc-100">{selected.subject || '(no subject)'}</div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Subject</div>
+                    <div className="mt-1 text-zinc-100">{selected.subject || '(no subject)'}</div>
                   </div>
-                  <div className="max-h-72 overflow-y-auto rounded-lg border border-zinc-800 bg-black/30 p-3 text-zinc-400">
+                  <div className="max-h-72 overflow-y-auto rounded-lg border border-zinc-800 bg-black/30 p-3 leading-6 text-zinc-400">
                     {selected.body_text || selected.body || 'No body preview.'}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="primary" onClick={openPrimeMail}>
+                      <ExternalLink className="size-4" />
+                      PRIME MAIL
+                    </Button>
+                    <Button variant="secondary" onClick={openSenderDossier} disabled={!selectedSenderEmail}>
+                      <UserRound className="size-4" />
+                      Dossier
+                    </Button>
                   </div>
                 </div>
               ) : (
-                <EmptyState title="Select a message" />
+                <EmptyState title="Select a message" detail="The selected sender becomes available as CRM dossier context." />
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Send Email</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Send Email</CardTitle></CardHeader>
             <CardContent>
               <form className="flex flex-col gap-3" onSubmit={submitSend}>
                 <Input required type="email" value={compose.to} onChange={(event) => setCompose({ ...compose, to: event.target.value })} placeholder="To" />
@@ -198,7 +226,7 @@ export default function Email() {
                 </Button>
                 <div className="flex items-center gap-2 text-xs text-zinc-500">
                   <MailPlus className="size-4" />
-                  Cloudflare Email Sending must be enabled before outbound succeeds.
+                  Outbound routes through the configured PRIME MAIL bridge.
                 </div>
               </form>
             </CardContent>
