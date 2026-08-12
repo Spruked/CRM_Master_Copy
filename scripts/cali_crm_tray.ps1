@@ -5,14 +5,19 @@ param(
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class VivCrmNativeIcon {
+  [DllImport("user32.dll")]
+  public static extern bool DestroyIcon(IntPtr handle);
+}
+'@
 
 $root = Split-Path -Parent $PSScriptRoot
 $backendScript = Join-Path $root 'start_crm_backend_wsl.ps1'
 $frontendScript = Join-Path $root 'start_crm_frontend.ps1'
-$iconCandidates = @(
-  (Join-Path $root 'CALI CRMLOGO.ico'),
-  (Join-Path $root 'CLAI CRMLOGO.ico')
-)
+$iconPath = Join-Path $root 'frontend\public\VIVLOGO.png'
 $logDir = Join-Path $env:LOCALAPPDATA 'CALI_CRM'
 $logFile = Join-Path $logDir 'tray.log'
 $crmUri = 'http://127.0.0.1:21010'
@@ -23,6 +28,26 @@ function Write-TrayLog([string]$Message) {
   try {
     Add-Content -LiteralPath $logFile -Value ("{0:u} {1}" -f (Get-Date), $Message) -Encoding UTF8
   } catch {}
+}
+
+function Get-PngTrayIcon([string]$Path) {
+  if (-not (Test-Path -LiteralPath $Path)) { return $null }
+  $bitmap = $null
+  $sourceIcon = $null
+  $handle = [IntPtr]::Zero
+  try {
+    $bitmap = New-Object System.Drawing.Bitmap($Path)
+    $handle = $bitmap.GetHicon()
+    $sourceIcon = [System.Drawing.Icon]::FromHandle($handle)
+    return $sourceIcon.Clone()
+  } catch {
+    Write-TrayLog "Tray icon load failed: $($_.Exception.Message)"
+    return $null
+  } finally {
+    if ($sourceIcon) { $sourceIcon.Dispose() }
+    if ($handle -ne [IntPtr]::Zero) { [void][VivCrmNativeIcon]::DestroyIcon($handle) }
+    if ($bitmap) { $bitmap.Dispose() }
+  }
 }
 
 $createdNew = $false
@@ -48,7 +73,7 @@ function Start-CrmBackend {
     Write-TrayLog "CRM backend launcher missing: $backendScript"
     return
   }
-  Write-TrayLog 'Starting CALI CRM backend.'
+  Write-TrayLog 'Starting VIV CRM backend.'
   Start-Process -FilePath 'powershell.exe' `
     -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f $backendScript)) `
     -WorkingDirectory $root `
@@ -61,7 +86,7 @@ function Start-CrmFrontend {
     Write-TrayLog "CRM frontend launcher missing: $frontendScript"
     return
   }
-  Write-TrayLog 'Starting CALI CRM frontend.'
+  Write-TrayLog 'Starting VIV CRM frontend.'
   Start-Process -FilePath 'powershell.exe' `
     -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f $frontendScript)) `
     -WorkingDirectory $root `
@@ -79,13 +104,13 @@ function Open-Crm {
 
 [System.Windows.Forms.Application]::EnableVisualStyles()
 $notify = New-Object System.Windows.Forms.NotifyIcon
-$iconPath = $iconCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
-if ($iconPath) {
-  try { $notify.Icon = New-Object System.Drawing.Icon($iconPath) } catch { $notify.Icon = [System.Drawing.SystemIcons]::Information }
+$trayIcon = Get-PngTrayIcon $iconPath
+if ($trayIcon) {
+  $notify.Icon = $trayIcon
 } else {
   $notify.Icon = [System.Drawing.SystemIcons]::Information
 }
-$notify.Text = 'CALI CRM'
+$notify.Text = 'VIV CRM'
 $notify.Visible = $true
 
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
@@ -93,7 +118,7 @@ $statusItem = New-Object System.Windows.Forms.ToolStripMenuItem
 $statusItem.Enabled = $false
 [void]$menu.Items.Add($statusItem)
 
-$openItem = New-Object System.Windows.Forms.ToolStripMenuItem('Open CALI CRM')
+$openItem = New-Object System.Windows.Forms.ToolStripMenuItem('Open VIV CRM')
 $openItem.Add_Click({ Open-Crm })
 [void]$menu.Items.Add($openItem)
 
@@ -123,13 +148,13 @@ function Update-Status {
   $frontendReady = Test-CrmPort 21010
   if ($backendReady -and $frontendReady) {
     $statusItem.Text = 'Status: CRM running'
-    $notify.Text = 'CALI CRM - running'
+    $notify.Text = 'VIV CRM - running'
   } elseif ($backendReady -or $frontendReady) {
     $statusItem.Text = 'Status: CRM partially running'
-    $notify.Text = 'CALI CRM - partial'
+    $notify.Text = 'VIV CRM - partial'
   } else {
     $statusItem.Text = 'Status: CRM stopped'
-    $notify.Text = 'CALI CRM - stopped'
+    $notify.Text = 'VIV CRM - stopped'
   }
 }
 
@@ -146,5 +171,6 @@ try {
 } finally {
   try { $timer.Stop(); $timer.Dispose() } catch {}
   try { $notify.Visible = $false; $notify.Dispose() } catch {}
+  try { if ($trayIcon) { $trayIcon.Dispose() } } catch {}
   try { $mutex.ReleaseMutex(); $mutex.Dispose() } catch {}
 }
