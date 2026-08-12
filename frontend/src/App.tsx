@@ -11,6 +11,7 @@ import Calendar from '@/pages/Calendar'
 import Contacts from '@/pages/Contacts'
 import Dashboard from '@/pages/Dashboard'
 import Email from '@/pages/Email'
+import Escalations from '@/pages/Escalations'
 import OrbAssistant from '@/pages/OrbAssistant'
 import Pipeline from '@/pages/Pipeline'
 import { BusinessContextProvider } from '@/providers/BusinessContextProvider'
@@ -41,11 +42,12 @@ function App() {
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/contacts" element={<Contacts />} />
-                    <Route path="/pipeline" element={<Pipeline />} />
                     <Route path="/email" element={<Email />} />
                     <Route path="/activities" element={<Activities />} />
                     <Route path="/calendar" element={<Calendar />} />
+                    <Route path="/escalations" element={<Escalations />} />
                     <Route path="/orb" element={<OrbAssistant />} />
+                    <Route path="/pipeline" element={<Pipeline />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </main>
