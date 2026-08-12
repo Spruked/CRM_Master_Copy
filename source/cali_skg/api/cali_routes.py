@@ -261,6 +261,7 @@ async def _spruk_email_request(
     *,
     params: Optional[Dict[str, Any]] = None,
     json_body: Optional[Dict[str, Any]] = None,
+    timeout_seconds: Optional[float] = None,
 ) -> Dict[str, Any]:
     if not _spruk_email_enabled():
         raise HTTPException(status_code=503, detail="Prime Mail integration disabled")
@@ -271,7 +272,7 @@ async def _spruk_email_request(
     url = f"{base}/{str(path or '').lstrip('/')}"
 
     try:
-        async with httpx.AsyncClient(timeout=_spruk_email_timeout_seconds()) as client:
+        async with httpx.AsyncClient(timeout=timeout_seconds or _spruk_email_timeout_seconds()) as client:
             response = await client.request(method=method.upper(), url=url, params=params, json=json_body)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Prime Mail request failed: {exc}") from exc
@@ -792,6 +793,8 @@ class EventCreate(BaseModel):
     end_time: Optional[str] = None
     location: Optional[str] = None
     attendees: Optional[List[str]] = None
+    notes: Optional[str] = None
+    attendee_notes: Optional[Dict[str, str]] = None
     priority: int = 0
 
 
@@ -1154,6 +1157,8 @@ def add_event(payload: EventCreate, _: str = Depends(verify_admin)) -> Dict[str,
         end_time=payload.end_time,
         location=payload.location,
         attendees=payload.attendees,
+        notes=payload.notes,
+        attendee_notes=payload.attendee_notes,
         priority=payload.priority,
     )
 
@@ -1496,18 +1501,23 @@ async def crm_unified_status(_: str = Depends(verify_admin)) -> Dict[str, Any]:
     cali = get_cali_skg()
     pipeline = cali.get_crm_pipeline()
     connector = cali.get_email_connector_status()
+    external_enabled = _spruk_email_enabled()
     try:
-        external_health = await _spruk_email_request("GET", "health")
+        external_health = await _spruk_email_request("GET", "health", timeout_seconds=1.5)
     except HTTPException as exc:
         external_health = {"status": "error", "detail": exc.detail}
+    external_health_status = str(external_health.get("status") or "").lower()
+    external_status = "online" if external_enabled and external_health_status == "ok" else "degraded" if external_enabled else "disabled"
 
     return {
         "crm_pipeline": pipeline,
         "crm_email_connector": connector,
         "external_email": {
-            "enabled": _spruk_email_enabled(),
+            "enabled": external_enabled,
+            "status": external_status,
             "api_base": _spruk_email_api_base(),
             "health": external_health,
+            "detail": external_health.get("detail") if isinstance(external_health, dict) else None,
         },
     }
 

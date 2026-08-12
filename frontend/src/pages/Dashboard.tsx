@@ -46,6 +46,10 @@ export default function Dashboard() {
   const pipeline = status.data?.crm_pipeline
   const connector = status.data?.crm_email_connector
   const externalEmail = status.data?.external_email
+  const crmApiStatus = health.data?.status || (!status.isError ? 'ok' : 'unknown')
+  const bridgeStatus = externalEmail?.status || (externalEmail?.enabled ? 'degraded' : 'disabled')
+  const bridgeBadge = bridgeStatus === 'online' ? 'success' : 'warning'
+  const bridgeDetail = externalEmail?.detail || externalEmail?.api_base || 'Prime Mail API'
 
   useEffect(() => {
     if (!pipeline) return
@@ -68,9 +72,9 @@ export default function Dashboard() {
           Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-36" />)
         ) : (
           <>
-            <StatCard title="CRM API" value={health.data?.status || 'error'} detail={health.data?.service || 'health'} icon={Server} />
+            <StatCard title="CRM API" value={crmApiStatus} detail={health.data?.service || 'protected API'} icon={Server} />
             <StatCard title="Pipeline Leads" value={pipeline?.total ?? 0} detail="active local leads" icon={Users} />
-            <StatCard title="Email Bridge" value={externalEmail?.enabled ? 'enabled' : 'offline'} detail={externalEmail?.api_base || 'prime mail'} icon={Mail} />
+            <StatCard title="Email Bridge" value={bridgeStatus} detail={bridgeDetail} icon={Mail} />
             <StatCard title="Connector" value={connector?.status || 'unknown'} detail="CRM email connector" icon={Activity} />
           </>
         )}
@@ -103,12 +107,17 @@ export default function Dashboard() {
           <CardContent className="flex flex-col gap-3">
             <div className="flex items-center justify-between rounded-lg border border-zinc-800 p-3">
               <span className="text-sm text-zinc-400">CRM API</span>
-              <Badge variant={health.data?.status === 'ok' ? 'success' : 'warning'}>{health.data?.status || 'unknown'}</Badge>
+              <Badge variant={crmApiStatus === 'ok' ? 'success' : 'warning'}>{crmApiStatus}</Badge>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-zinc-800 p-3">
               <span className="text-sm text-zinc-400">Prime Mail bridge</span>
-              <Badge variant={externalEmail?.enabled ? 'success' : 'warning'}>{externalEmail?.enabled ? 'enabled' : 'disabled'}</Badge>
+              <Badge variant={bridgeBadge}>{bridgeStatus}</Badge>
             </div>
+            {externalEmail?.detail ? (
+              <div className="rounded-lg border border-zinc-800 p-3 text-xs text-zinc-500">
+                Prime Mail detail: {externalEmail.detail}
+              </div>
+            ) : null}
             <div className="flex items-center justify-between rounded-lg border border-zinc-800 p-3">
               <span className="text-sm text-zinc-400">Admin auth</span>
               <Badge variant={status.isError ? 'warning' : 'success'}>{status.isError ? 'check token' : 'accepted'}</Badge>

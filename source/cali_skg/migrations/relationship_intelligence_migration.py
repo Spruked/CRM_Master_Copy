@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from contextlib import closing
 from datetime import datetime, timezone
 from typing import Any, List, Optional
 
@@ -478,7 +479,7 @@ def apply_relationship_intelligence_schema(
 
 def run_migration(db_path: str) -> dict[str, Any]:
     steps: List[str] = []
-    with sqlite3.connect(db_path) as conn:
+    with closing(sqlite3.connect(db_path)) as conn:
         apply_relationship_intelligence_schema(conn, steps)
         conn.commit()
     return {"status": "success", "db_path": db_path, "steps": steps}

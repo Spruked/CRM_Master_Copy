@@ -4,6 +4,7 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
@@ -17,7 +18,7 @@ class RelationshipIntelligenceSchemaTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
         self.db_path = str(Path(self.temp_dir.name) / "cali-test.db")
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             conn.execute(
                 """
                 CREATE TABLE contacts (
@@ -46,7 +47,7 @@ class RelationshipIntelligenceSchemaTests(unittest.TestCase):
         self.assertEqual(first["status"], "success")
         self.assertEqual(second["status"], "success")
 
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             party_count = conn.execute("SELECT COUNT(*) FROM party").fetchone()[0]
             claim_count = conn.execute("SELECT COUNT(*) FROM identity_claim").fetchone()[0]
             evidence_count = conn.execute("SELECT COUNT(*) FROM evidence").fetchone()[0]
@@ -71,7 +72,7 @@ class RelationshipIntelligenceSchemaTests(unittest.TestCase):
 
     def test_strict_and_candidate_relationships_are_physically_separate(self) -> None:
         run_migration(self.db_path)
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             tables = {
                 row[0]
                 for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
@@ -84,7 +85,7 @@ class RelationshipIntelligenceSchemaTests(unittest.TestCase):
     def test_required_business_contexts_are_seeded_once(self) -> None:
         run_migration(self.db_path)
         run_migration(self.db_path)
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             rows = conn.execute("SELECT business_id FROM business_context ORDER BY business_id").fetchall()
         business_ids = [row[0] for row in rows]
         self.assertEqual(
@@ -94,7 +95,7 @@ class RelationshipIntelligenceSchemaTests(unittest.TestCase):
 
     def test_active_claim_uniqueness_blocks_duplicate_current_claim(self) -> None:
         run_migration(self.db_path)
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             claim = conn.execute(
                 """
                 SELECT claim_type, value_raw, value_normalized, value_hash, observed_from, created_at

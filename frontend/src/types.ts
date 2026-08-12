@@ -109,7 +109,9 @@ export type UnifiedStatus = {
   }
   external_email?: {
     enabled?: boolean
+    status?: string
     api_base?: string
     health?: Record<string, unknown>
+    detail?: string | null
   }
 }

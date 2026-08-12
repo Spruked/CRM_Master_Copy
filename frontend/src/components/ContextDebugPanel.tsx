@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getCRMContext, type CRMContextPayload } from '@/lib/orb-integration'
 
 export function ContextDebugPanel() {
@@ -19,6 +19,9 @@ export function ContextDebugPanel() {
     <Card>
       <CardHeader>
         <CardTitle>ORB Context Bridge</CardTitle>
+        <CardDescription>
+          Shares the current CRM screen context with the ORB Assistant. It is not a contact store or mail sync.
+        </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="flex items-center justify-between rounded-lg border border-zinc-800 p-3">

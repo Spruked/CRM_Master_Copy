@@ -3,7 +3,7 @@ import sqlite3
 from pathlib import Path
 
 
-DB_PATH = Path(os.getenv("CALI_DB_PATH", r"R:\R_Drive_Substrate\crm\memory\cali_personal.db"))
+DB_PATH = Path(os.getenv("CALI_DB_PATH", r"R:\Substrate_Vault_R\vaults\r_drive_system_records\crm\memory\cali_personal.db"))
 
 
 def run_migration() -> None:
