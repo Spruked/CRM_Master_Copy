@@ -11,8 +11,10 @@ import Calendar from '@/pages/Calendar'
 import Contacts from '@/pages/Contacts'
 import Dashboard from '@/pages/Dashboard'
 import Email from '@/pages/Email'
+import Escalations from '@/pages/Escalations'
 import OrbAssistant from '@/pages/OrbAssistant'
 import Pipeline from '@/pages/Pipeline'
+import { BusinessContextProvider } from '@/providers/BusinessContextProvider'
 import { CRMProvider } from '@/providers/CRMProvider'
 
 function App() {
@@ -27,30 +29,33 @@ function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <CRMProvider>
-          <AnimatePresence mode="wait">
-            {showSplash ? <SplashScreen onComplete={completeSplash} /> : null}
-          </AnimatePresence>
-          <div className="flex h-screen overflow-hidden bg-[#0b0f2a] text-zinc-100">
-            <Sidebar onTokenClick={() => setAuthOpen(true)} />
-            <div className="flex min-w-0 flex-1 flex-col">
-              <Topbar onTokenClick={() => setAuthOpen(true)} />
-              <main className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#17306d_0%,#122757_38%,#0b0f2a_100%)] p-5">
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/contacts" element={<Contacts />} />
-                  <Route path="/pipeline" element={<Pipeline />} />
-                  <Route path="/email" element={<Email />} />
-                  <Route path="/activities" element={<Activities />} />
-                  <Route path="/calendar" element={<Calendar />} />
-                  <Route path="/orb" element={<OrbAssistant />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </main>
+        <BusinessContextProvider>
+          <CRMProvider>
+            <AnimatePresence mode="wait">
+              {showSplash ? <SplashScreen onComplete={completeSplash} /> : null}
+            </AnimatePresence>
+            <div className="flex h-screen overflow-hidden bg-[#0b0f2a] text-zinc-100">
+              <Sidebar onTokenClick={() => setAuthOpen(true)} />
+              <div className="flex min-w-0 flex-1 flex-col">
+                <Topbar onTokenClick={() => setAuthOpen(true)} />
+                <main className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#17306d_0%,#122757_38%,#0b0f2a_100%)] p-5">
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/contacts" element={<Contacts />} />
+                    <Route path="/email" element={<Email />} />
+                    <Route path="/activities" element={<Activities />} />
+                    <Route path="/calendar" element={<Calendar />} />
+                    <Route path="/escalations" element={<Escalations />} />
+                    <Route path="/orb" element={<OrbAssistant />} />
+                    <Route path="/pipeline" element={<Pipeline />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </main>
+              </div>
             </div>
-          </div>
-          <AuthDialog open={authOpen} onClose={() => setAuthOpen(false)} />
-        </CRMProvider>
+            <AuthDialog open={authOpen} onClose={() => setAuthOpen(false)} />
+          </CRMProvider>
+        </BusinessContextProvider>
       </BrowserRouter>
     </ErrorBoundary>
   )

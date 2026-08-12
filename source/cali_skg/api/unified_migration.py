@@ -3,6 +3,8 @@ from __future__ import annotations
 import sqlite3
 from typing import Any, Dict, List
 
+from cali_skg.migrations.relationship_intelligence_migration import apply_relationship_intelligence_schema
+
 
 def _existing_columns(cur: sqlite3.Cursor, table: str) -> set[str]:
     cur.execute(f"PRAGMA table_info({table})")
@@ -169,6 +171,11 @@ def run_unified_migration(db_path: str) -> Dict[str, Any]:
             elif "caller_number" in cols:
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_verification_calls_contact ON verification_calls(caller_number)")
         steps.append("Ensured unified indices")
+
+        # Additive relationship/communications intelligence substrate. This keeps
+        # the legacy tables intact while backfilling them into canonical Party
+        # records so the UI can migrate without a destructive cutover.
+        apply_relationship_intelligence_schema(conn, steps)
 
         conn.commit()
 
