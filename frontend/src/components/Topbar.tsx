@@ -19,13 +19,13 @@ export function Topbar({ onTokenClick }: { onTokenClick: () => void }) {
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <div className="relative w-full max-w-xl">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-600" />
-          <Input className="pl-9" placeholder="Search people, organizations, mail, activity..." />
+          <Input className="pl-9" placeholder="Signal scan: subjects, organizations, signals, events..." />
         </div>
         <div className="hidden items-center gap-2 lg:flex">
           <Building2 className="size-4 text-cyan-300" />
           <Select
             className="h-9 w-48"
-            aria-label="Business context"
+            aria-label="Compartment scope"
             value={businessScope}
             disabled={isLoading}
             onChange={(event) => {
@@ -33,14 +33,14 @@ export function Topbar({ onTokenClick }: { onTokenClick: () => void }) {
               void queryClient.invalidateQueries()
             }}
           >
-            <option value="all">All contexts</option>
+            <option value="all">All compartments</option>
             {businesses.map((business) => (
               <option key={business.business_id} value={business.business_id}>{business.label}</option>
             ))}
           </Select>
         </div>
         <div className="hidden max-w-48 truncate rounded-md border border-zinc-800 px-2 py-1 text-xs text-zinc-500 xl:block">
-          Cali · {API_URL}
+          VIV - {API_URL}
         </div>
       </div>
 
@@ -62,7 +62,7 @@ export function Topbar({ onTokenClick }: { onTokenClick: () => void }) {
         </Button>
         <Button variant="secondary" size="sm" onClick={onTokenClick}>
           <KeyRound className="size-4" />
-          Token
+          Cipher
         </Button>
       </div>
     </header>

@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   CalendarDays,
@@ -13,6 +13,8 @@ import {
   Search,
   ShieldQuestion,
   Target,
+  Trash2,
+  Upload,
   UserRound,
   X,
 } from 'lucide-react'
@@ -32,7 +34,7 @@ import { api } from '@/lib/api'
 import { updateCRMContext } from '@/lib/orb-integration'
 import { compactDate, initials } from '@/lib/utils'
 import { useBusinessContext } from '@/providers/BusinessContextProvider'
-import type { BusinessRole, Contact } from '@/types'
+import type { BusinessRole, Contact, DossierMedia } from '@/types'
 
 const relationshipTypes = [
   'personal',
@@ -50,6 +52,7 @@ const relationshipTypes = [
 ]
 
 const salesStages = ['prospect', 'qualified', 'contacted', 'meeting_scheduled', 'proposal', 'won', 'lost']
+const mediaKinds = ['person', 'place', 'building', 'other'] as const
 const primeMailUrl = String(import.meta.env.VITE_PRIME_MAIL_URL || 'http://127.0.0.1:19000').replace(/\/$/, '')
 
 function field(value?: string | null, fallback = '—') {
@@ -108,6 +111,13 @@ export default function Contacts() {
     relationship: '',
     segments: '',
   })
+  const [mediaDraft, setMediaDraft] = useState({
+    media_kind: 'person',
+    label: '',
+    image_url: '',
+    notes: '',
+    is_primary: false,
+  })
 
   const contactsQuery = useQuery({
     queryKey: ['contacts-intelligence', query, relationshipType, segment, businessScope],
@@ -147,6 +157,15 @@ export default function Contacts() {
         params: { business_scope: businessScope },
       })
       return response.data as ConnectionsResponse
+    },
+  })
+
+  const mediaQuery = useQuery({
+    queryKey: ['contact-media', selectedContact?.id],
+    enabled: Boolean(selectedContact?.id),
+    queryFn: async () => {
+      const response = await api.get(`/cali/intelligence/contacts/${encodeURIComponent(String(selectedContact?.id))}/media`)
+      return response.data as { media: DossierMedia[]; count: number }
     },
   })
 
@@ -209,7 +228,7 @@ export default function Contacts() {
           visibility: 'scoped',
         })
       }
-      toast.success('Contact added')
+      toast.success('Dossier created')
       setForm({ name: '', email: '', phone: '', type: 'professional', stage: '', notes: '', relationship: '', segments: '' })
       setSalesContact(false)
       setShowAddForm(false)
@@ -232,7 +251,7 @@ export default function Contacts() {
       })
     },
     onSuccess: async () => {
-      toast.success('Relationship context saved')
+      toast.success('Compartment scope saved')
       await queryClient.invalidateQueries({ queryKey: ['contacts-intelligence'] })
       await queryClient.invalidateQueries({ queryKey: ['contact-segments'] })
     },
@@ -274,6 +293,43 @@ export default function Contacts() {
     onError: (error) => toast.error(error.message),
   })
 
+  const addMedia = useMutation({
+    mutationFn: async () => {
+      if (!selectedContact?.id) throw new Error('Select a dossier first')
+      return api.post(`/cali/intelligence/contacts/${encodeURIComponent(String(selectedContact.id))}/media`, mediaDraft)
+    },
+    onSuccess: async () => {
+      toast.success('Image vault item added')
+      setMediaDraft({ media_kind: 'person', label: '', image_url: '', notes: '', is_primary: false })
+      await queryClient.invalidateQueries({ queryKey: ['contact-media', selectedContact?.id] })
+    },
+    onError: (error) => toast.error(error.message),
+  })
+
+  const setPrimaryMedia = useMutation({
+    mutationFn: async (mediaId: string) => {
+      if (!selectedContact?.id) throw new Error('Select a dossier first')
+      return api.post(`/cali/intelligence/contacts/${encodeURIComponent(String(selectedContact.id))}/media/${encodeURIComponent(mediaId)}/primary`)
+    },
+    onSuccess: async () => {
+      toast.success('Primary dossier image set')
+      await queryClient.invalidateQueries({ queryKey: ['contact-media', selectedContact?.id] })
+    },
+    onError: (error) => toast.error(error.message),
+  })
+
+  const deleteMedia = useMutation({
+    mutationFn: async (mediaId: string) => {
+      if (!selectedContact?.id) throw new Error('Select a dossier first')
+      return api.delete(`/cali/intelligence/contacts/${encodeURIComponent(String(selectedContact.id))}/media/${encodeURIComponent(mediaId)}`)
+    },
+    onSuccess: async () => {
+      toast.success('Image vault item removed')
+      await queryClient.invalidateQueries({ queryKey: ['contact-media', selectedContact?.id] })
+    },
+    onError: (error) => toast.error(error.message),
+  })
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     createContact.mutate()
@@ -310,13 +366,13 @@ export default function Contacts() {
   return (
     <div>
       <SectionHeader
-        title="People & Dossiers"
-        detail="One relationship database with business-context views, communications history, connection discovery, and optional sales features."
+        title="Dossier Vault"
+        detail="Canonical subjects with compartment scope, signal history, associate discovery, and optional operation state."
         action={
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => scanConnections.mutate()} disabled={scanConnections.isPending}>
               <ScanSearch className="size-4" />
-              Scan connections
+              Run Path Discovery
             </Button>
             <Button
               variant="primary"
@@ -326,18 +382,18 @@ export default function Contacts() {
               }}
             >
               <Plus className="size-4" />
-              Add contact
+              Create Dossier
             </Button>
           </div>
         }
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-blue-900/60 bg-[#0b1633]/80 px-4 py-3 text-sm">
-        <span className="text-zinc-500">Context</span>
-        <Badge>{activeBusiness?.label || 'All contexts'}</Badge>
-        <span className="ml-2 text-zinc-500">Segment</span>
+        <span className="text-zinc-500">Compartment</span>
+        <Badge>{activeBusiness?.label || 'All compartments'}</Badge>
+        <span className="ml-2 text-zinc-500">Cell</span>
         <Select className="h-8 w-44" value={segment} onChange={(event) => setSegment(event.target.value)}>
-          <option value="">All segments</option>
+          <option value="">All cells</option>
           {(segmentsQuery.data?.segments || []).map((item) => (
             <option key={item.name} value={item.name}>{item.name} ({item.count})</option>
           ))}
@@ -349,16 +405,16 @@ export default function Contacts() {
           <CardHeader>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <CardTitle>Relationship Directory</CardTitle>
-                <div className="mt-1 text-xs text-zinc-500">{contacts.length} contacts in this view</div>
+                <CardTitle>Subject Directory</CardTitle>
+                <div className="mt-1 text-xs text-zinc-500">{contacts.length} subjects in this compartment</div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <div className="relative w-72 max-w-full">
                   <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-600" />
-                  <Input className="pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search people, email, notes, location" />
+                  <Input className="pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Signal scan: subject, origin, claims, location" />
                 </div>
                 <Select value={relationshipType} onChange={(event) => setRelationshipType(event.target.value)}>
-                  <option value="">All relationships</option>
+                  <option value="">All classifications</option>
                   {relationshipTypes.map((type) => (
                     <option key={type} value={type}>{type.replaceAll('_', ' ')}</option>
                   ))}
@@ -372,11 +428,11 @@ export default function Contacts() {
                 <Table>
                   <thead>
                     <tr>
-                      <Th>Name</Th>
-                      <Th>Relationship</Th>
-                      <Th>Segments</Th>
-                      <Th>Email</Th>
-                      <Th>Relevance</Th>
+                      <Th>Subject</Th>
+                      <Th>Clearance</Th>
+                      <Th>Cells</Th>
+                      <Th>Origin Signature</Th>
+                      <Th>Profile Score</Th>
                     </tr>
                   </thead>
                   <tbody>
@@ -398,7 +454,7 @@ export default function Contacts() {
                               </div>
                               <div className="min-w-0">
                                 <div className="truncate font-medium text-zinc-100">{contact.name}</div>
-                                <div className="truncate text-xs text-zinc-500">{contact.phone || 'No phone'}</div>
+                                <div className="truncate text-xs text-zinc-500">{contact.phone || 'No line'}</div>
                               </div>
                             </div>
                           </Td>
@@ -409,7 +465,7 @@ export default function Contacts() {
                               {(contact.segments || []).length > 3 ? <Badge variant="muted">+{(contact.segments || []).length - 3}</Badge> : null}
                             </div>
                           </Td>
-                          <Td><div className="max-w-64 truncate">{contact.email || 'No email'}</div></Td>
+                          <Td><div className="max-w-64 truncate">{contact.email || 'No origin'}</div></Td>
                           <Td>{contact.relevance?.relevance_score !== undefined ? Math.round(contact.relevance.relevance_score) : '—'}</Td>
                         </tr>
                       )
@@ -418,7 +474,7 @@ export default function Contacts() {
                 </Table>
               </div>
             ) : (
-              <EmptyState title="No contacts found" detail="Change the business context, segment, or search filter." />
+              <EmptyState title="No subjects found" detail="Change the compartment, cell, or signal scan." />
             )}
           </CardContent>
         </Card>
@@ -426,39 +482,39 @@ export default function Contacts() {
         <div className="min-w-0">
           {showAddForm ? (
             <Card>
-              <CardHeader><CardTitle>New Contact</CardTitle></CardHeader>
+              <CardHeader><CardTitle>New Dossier</CardTitle></CardHeader>
               <CardContent>
                 <form className="flex flex-col gap-3" onSubmit={submit}>
-                  <Input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Name" />
-                  <Input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="Email" type="email" />
-                  <Input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} placeholder="Phone" />
+                  <Input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Subject name" />
+                  <Input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="Origin signature" type="email" />
+                  <Input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} placeholder="Secure line" />
                   <Select value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value })}>
                     {relationshipTypes.map((type) => <option key={type} value={type}>{type.replaceAll('_', ' ')}</option>)}
                   </Select>
                   {businessScope !== 'all' ? (
                     <>
-                      <Input value={form.relationship} onChange={(event) => setForm({ ...form, relationship: event.target.value })} placeholder={`Relationship to ${activeBusiness?.label || businessScope}`} />
-                      <Input value={form.segments} onChange={(event) => setForm({ ...form, segments: event.target.value })} placeholder="Segments/tags, comma separated" />
+                      <Input value={form.relationship} onChange={(event) => setForm({ ...form, relationship: event.target.value })} placeholder={`Compartment role for ${activeBusiness?.label || businessScope}`} />
+                      <Input value={form.segments} onChange={(event) => setForm({ ...form, segments: event.target.value })} placeholder="Cell tags, comma separated" />
                     </>
                   ) : null}
-                  <Textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Notes" />
+                  <Textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Claims / field notes" />
 
                   <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-300">
                     <input type="checkbox" checked={salesContact} onChange={(event) => setSalesContact(event.target.checked)} />
-                    This contact also has a sales opportunity
+                    This subject also has an operation opportunity
                   </label>
                   {salesContact ? (
                     <Select value={form.stage} onChange={(event) => setForm({ ...form, stage: event.target.value })}>
-                      <option value="">Choose sales stage</option>
+                      <option value="">Choose escalation state</option>
                       {salesStages.map((stage) => <option key={stage} value={stage}>{stage.replaceAll('_', ' ')}</option>)}
                     </Select>
                   ) : null}
 
                   <div className="flex justify-end gap-2">
-                    <Button type="button" variant="secondary" onClick={() => setShowAddForm(false)}>Cancel</Button>
+                    <Button type="button" variant="secondary" onClick={() => setShowAddForm(false)}>Stand Down</Button>
                     <Button variant="primary" disabled={createContact.isPending}>
                       <Plus className="size-4" />
-                      Add contact
+                      Create dossier
                     </Button>
                   </div>
                 </form>
@@ -469,12 +525,12 @@ export default function Contacts() {
               <div className="border-b border-blue-500/20 bg-[#111d37] px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-blue-400">Relationship Dossier</div>
+                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-blue-400">Subject Dossier</div>
                     <div className="mt-1 text-xs text-zinc-500">Identity · communications · connections · context</div>
                   </div>
                   <Button size="sm" variant="secondary" onClick={() => window.open(window.location.href, '_blank', 'noopener,noreferrer')}>
                     <ExternalLink className="size-3.5" />
-                    Pop out
+                    Detach
                   </Button>
                 </div>
               </div>
@@ -486,7 +542,7 @@ export default function Contacts() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <h2 className="truncate text-xl font-semibold text-white">{selectedContact.name}</h2>
-                    <div className="mt-1 truncate text-sm text-zinc-400">{field(selectedContact.email, 'No email')}</div>
+                    <div className="mt-1 truncate text-sm text-zinc-400">{field(selectedContact.email, 'No origin')}</div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Badge>{selectedType.replaceAll('_', ' ')}</Badge>
                       {selectedBusinessRole?.role ? <Badge variant="muted">{selectedBusinessRole.role}</Badge> : null}
@@ -495,40 +551,40 @@ export default function Contacts() {
                   </div>
                 </div>
 
-                <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400">Identity</div>
+                <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400">Canonical Identity</div>
                 <div className="mt-2 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/45 text-sm">
-                  <div className="grid grid-cols-[7rem_1fr] gap-3 border-b border-zinc-800 px-3 py-2.5"><span className="text-zinc-500">Email</span><span className="break-all text-zinc-200">{field(selectedContact.email)}</span></div>
-                  <div className="grid grid-cols-[7rem_1fr] gap-3 border-b border-zinc-800 px-3 py-2.5"><span className="text-zinc-500">Phone</span><span className="text-zinc-200">{field(selectedContact.phone)}</span></div>
-                  <div className="grid grid-cols-[7rem_1fr] gap-3 px-3 py-2.5"><span className="text-zinc-500">Address</span><span className="text-zinc-200">{field(selectedContact.address)}</span></div>
+                  <div className="grid grid-cols-[7rem_1fr] gap-3 border-b border-zinc-800 px-3 py-2.5"><span className="text-zinc-500">Origin</span><span className="break-all text-zinc-200">{field(selectedContact.email)}</span></div>
+                  <div className="grid grid-cols-[7rem_1fr] gap-3 border-b border-zinc-800 px-3 py-2.5"><span className="text-zinc-500">Line</span><span className="text-zinc-200">{field(selectedContact.phone)}</span></div>
+                  <div className="grid grid-cols-[7rem_1fr] gap-3 px-3 py-2.5"><span className="text-zinc-500">Location</span><span className="text-zinc-200">{field(selectedContact.address)}</span></div>
                 </div>
 
-                <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400">Relationship Context</div>
+                <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400">Compartment Scope</div>
                 <div className="mt-2 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/45 text-sm">
-                  <div className="grid grid-cols-[7rem_1fr] gap-3 border-b border-zinc-800 px-3 py-2.5"><span className="text-zinc-500">Last contact</span><span className="text-zinc-200">{compactDate(selectedContact.last_contacted_at)}</span></div>
-                  <div className="grid grid-cols-[7rem_1fr] gap-3 border-b border-zinc-800 px-3 py-2.5"><span className="text-zinc-500">Follow-up</span><span className="text-zinc-200">{compactDate(selectedContact.next_follow_up_at)}</span></div>
-                  <div className="grid grid-cols-[7rem_1fr] gap-3 px-3 py-2.5"><span className="text-zinc-500">Contexts</span><span className="text-zinc-200">{selectedContact.business_roles?.map((item) => item.business_id).join(', ') || 'Unassigned'}</span></div>
+                  <div className="grid grid-cols-[7rem_1fr] gap-3 border-b border-zinc-800 px-3 py-2.5"><span className="text-zinc-500">Last signal</span><span className="text-zinc-200">{compactDate(selectedContact.last_contacted_at)}</span></div>
+                  <div className="grid grid-cols-[7rem_1fr] gap-3 border-b border-zinc-800 px-3 py-2.5"><span className="text-zinc-500">Next command</span><span className="text-zinc-200">{compactDate(selectedContact.next_follow_up_at)}</span></div>
+                  <div className="grid grid-cols-[7rem_1fr] gap-3 px-3 py-2.5"><span className="text-zinc-500">Compartments</span><span className="text-zinc-200">{selectedContact.business_roles?.map((item) => item.business_id).join(', ') || 'Uncompartmented'}</span></div>
                 </div>
 
                 {businessScope !== 'all' ? (
                   <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950/45 p-3">
-                    <div className="mb-2 text-xs font-medium text-zinc-300">{activeBusiness?.label || businessScope} relationship</div>
+                    <div className="mb-2 text-xs font-medium text-zinc-300">{activeBusiness?.label || businessScope} compartment scope</div>
                     <div className="grid gap-2">
-                      <Input value={roleDraft} onChange={(event) => setRoleDraft(event.target.value)} placeholder="Role or relationship" />
-                      <Input value={segmentDraft} onChange={(event) => setSegmentDraft(event.target.value)} placeholder="Segments/tags, comma separated" />
+                      <Input value={roleDraft} onChange={(event) => setRoleDraft(event.target.value)} placeholder="Role or cover" />
+                      <Input value={segmentDraft} onChange={(event) => setSegmentDraft(event.target.value)} placeholder="Cell tags, comma separated" />
                       <Button size="sm" variant="secondary" onClick={() => saveBusinessRole.mutate()} disabled={saveBusinessRole.isPending}>
                         <Check className="size-3.5" />
-                        Save context
+                        Save scope
                       </Button>
                     </div>
                   </div>
                 ) : null}
 
                 <div className="mt-4 flex items-center justify-between gap-2">
-                  <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400">Connection Intelligence</div>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400">Associate Map</div>
                   <div className="flex gap-1">
                     <Button size="sm" variant="ghost" onClick={() => recalculateRelevance.mutate()} disabled={!selectedContact.party_id || recalculateRelevance.isPending}>
                       <Target className="size-3.5" />
-                      Score
+                      Signature
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => void connectionsQuery.refetch()}>
                       <RefreshCw className="size-3.5" />
@@ -538,19 +594,19 @@ export default function Contacts() {
                 <div className="mt-2 grid grid-cols-3 gap-2">
                   <div className="rounded-lg border border-zinc-800 bg-zinc-950/45 p-3 text-center">
                     <div className="text-xl font-semibold text-white">{relevance?.relevance_score !== undefined ? Math.round(Number(relevance.relevance_score)) : '—'}</div>
-                    <div className="mt-1 text-[9px] uppercase tracking-wide text-zinc-500">Relevance</div>
+                    <div className="mt-1 text-[9px] uppercase tracking-wide text-zinc-500">Profile</div>
                   </div>
                   <div className="rounded-lg border border-zinc-800 bg-zinc-950/45 p-3 text-center">
                     <div className="text-xl font-semibold text-white">{formatPercent(relevance?.connection_strength)}</div>
-                    <div className="mt-1 text-[9px] uppercase tracking-wide text-zinc-500">Connection</div>
+                    <div className="mt-1 text-[9px] uppercase tracking-wide text-zinc-500">Link</div>
                   </div>
                   <div className="rounded-lg border border-zinc-800 bg-zinc-950/45 p-3 text-center">
                     <div className="text-xl font-semibold text-white">{verifiedConnections.length + candidateConnections.length}</div>
-                    <div className="mt-1 text-[9px] uppercase tracking-wide text-zinc-500">Associations</div>
+                    <div className="mt-1 text-[9px] uppercase tracking-wide text-zinc-500">Associates</div>
                   </div>
                 </div>
                 <div className="mt-2 rounded-lg border border-zinc-800 bg-zinc-950/45 p-3 text-xs leading-5 text-zinc-400">
-                  Relevance is contextual and explainable. Geographic or domain proximity can contribute weak discovery signals but does not prove that two people know each other.
+                  Profile confidence is contextual and explainable. Geographic or domain proximity can support path discovery but does not verify an associate link.
                 </div>
 
                 {verifiedConnections.length ? (
@@ -570,7 +626,7 @@ export default function Contacts() {
                 {candidateConnections.length ? (
                   <div className="mt-3 space-y-2">
                     <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-400">
-                      <ShieldQuestion className="size-3.5" /> Possible connections
+                      <ShieldQuestion className="size-3.5" /> Candidate Links
                     </div>
                     {candidateConnections.slice(0, 6).map((connection) => (
                       <div key={connection.edge_id} className="rounded-lg border border-amber-900/40 bg-amber-950/10 p-2.5 text-xs">
@@ -584,7 +640,7 @@ export default function Contacts() {
                         </div>
                         <div className="mt-2 flex justify-end gap-1">
                           <Button size="sm" variant="ghost" onClick={() => connection.edge_id && reviewCandidate.mutate({ candidateId: connection.edge_id, decision: 'reject' })}>
-                            <X className="size-3" /> Reject
+                            <X className="size-3" /> Dismiss
                           </Button>
                           <Button size="sm" variant="secondary" onClick={() => connection.edge_id && reviewCandidate.mutate({ candidateId: connection.edge_id, decision: 'accept' })}>
                             <Check className="size-3" /> Verify
@@ -597,29 +653,29 @@ export default function Contacts() {
 
                 {selectedContact.notes ? (
                   <>
-                    <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400">Notes</div>
+                    <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400">Claim Ledger</div>
                     <div className="mt-2 rounded-lg border border-zinc-800 bg-zinc-950/45 p-3 text-sm leading-6 text-zinc-300">{selectedContact.notes}</div>
                   </>
                 ) : null}
 
                 {selectedStage ? (
                   <>
-                    <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.15em] text-violet-400">Optional Sales</div>
+                    <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.15em] text-violet-400">Operation State</div>
                     <div className="mt-2 rounded-lg border border-violet-900/40 bg-violet-950/10 p-3 text-sm text-zinc-300">
-                      Sales pipeline stage: <span className="font-medium text-white">{selectedStage.replaceAll('_', ' ')}</span>
+                      Escalation state: <span className="font-medium text-white">{selectedStage.replaceAll('_', ' ')}</span>
                     </div>
                   </>
                 ) : null}
 
                 {selectedContact.id ? <div className="mt-4"><DossierLinksRibbon contactId={String(selectedContact.id)} /></div> : null}
 
-                <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400">Quick Actions</div>
+                <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400">Commands</div>
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <Button variant="primary" onClick={() => openPrimeMail(selectedContact)} disabled={!selectedContact.email}>
-                    <Mail className="size-4" /> PRIME MAIL
+                    <Mail className="size-4" /> Signal Desk
                   </Button>
                   <Button variant="secondary" onClick={() => openCalendar(selectedContact)}>
-                    <CalendarDays className="size-4" /> Calendar
+                    <CalendarDays className="size-4" /> Event Grid
                   </Button>
                 </div>
               </div>
@@ -634,8 +690,8 @@ export default function Contacts() {
               <CardContent>
                 <div className="flex min-h-80 flex-col items-center justify-center text-center">
                   <div className="flex size-14 items-center justify-center rounded-xl bg-zinc-900 text-zinc-500"><UserRound className="size-6" /></div>
-                  <div className="mt-4 font-medium text-zinc-200">Select a relationship dossier</div>
-                  <div className="mt-1 max-w-72 text-sm text-zinc-500">The same identity can participate in multiple business contexts without becoming duplicate contacts.</div>
+                  <div className="mt-4 font-medium text-zinc-200">Select a subject dossier</div>
+                  <div className="mt-1 max-w-72 text-sm text-zinc-500">The same canonical identity can operate across compartments without duplicate dossiers.</div>
                 </div>
               </CardContent>
             </Card>

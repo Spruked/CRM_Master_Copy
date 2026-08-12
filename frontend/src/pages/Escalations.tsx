@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, CheckCircle2, ExternalLink, Radio, ShieldAlert, UserCheck } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ExternalLink, Radio, UserCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { SectionHeader } from '@/components/SectionHeader'
 import { Badge } from '@/components/ui/badge'
@@ -79,12 +79,12 @@ export default function Escalations() {
   return (
     <div>
       <SectionHeader
-        title="Human Escalations"
-        detail="One operational queue for ORB, mail, SMS, Messenger, website, and future communication channels."
+        title="Escalation Queue"
+        detail="Human review queue for ORB, signals, channels, web intake, and future field lines."
         action={
           <Button variant="secondary" onClick={() => void escalationsQuery.refetch()}>
             <Radio className="size-4" />
-            Refresh
+            Refresh Queue
           </Button>
         }
       />
@@ -97,7 +97,7 @@ export default function Escalations() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex min-w-0 items-start gap-3">
                     <div className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl ${item.priority === 'p0' ? 'bg-red-950 text-red-300' : item.priority === 'p1' ? 'bg-amber-950 text-amber-300' : 'bg-blue-950 text-blue-300'}`}>
-                      {item.priority === 'p0' || item.priority === 'p1' ? <ShieldAlert className="size-5" /> : <AlertTriangle className="size-5" />}
+                      {item.priority === 'p0' || item.priority === 'p1' ? <img className="size-10 rounded-lg object-cover brightness-125 saturate-150 drop-shadow-[0_0_18px_rgba(248,113,113,0.6)]" src="/redVIVlogo.png" alt="" /> : <AlertTriangle className="size-6" />}
                     </div>
                     <div className="min-w-0">
                       <CardTitle className="capitalize">{readable(item.trigger_reason)}</CardTitle>
@@ -114,7 +114,7 @@ export default function Escalations() {
               </CardHeader>
               <CardContent>
                 <div className="rounded-lg border border-zinc-800 bg-zinc-950/45 p-3 text-sm leading-6 text-zinc-300">
-                  <div><span className="text-zinc-500">ORB stopped because: </span>{item.orb_stop_reason}</div>
+                  <div><span className="text-zinc-500">ORB escalation reason: </span>{item.orb_stop_reason}</div>
                   {item.sla_due_at ? <div><span className="text-zinc-500">Response target: </span>{formatDate(item.sla_due_at)}</div> : null}
                   {item.owner ? <div><span className="text-zinc-500">Owner: </span>{item.owner}</div> : null}
                 </div>
@@ -133,29 +133,29 @@ export default function Escalations() {
                 <div className="mt-4 flex flex-wrap justify-end gap-2">
                   {item.continuation_ref ? (
                     <Button variant="secondary" onClick={() => window.open(String(item.continuation_ref), '_blank', 'noopener,noreferrer')}>
-                      <ExternalLink className="size-4" />Continue conversation
+                      <ExternalLink className="size-4" />Continue Relay
                     </Button>
                   ) : null}
                   {item.state === 'created' || item.state === 'notified' ? (
                     <Button variant="secondary" onClick={() => transition.mutate({ escalationId: item.escalation_id, state: 'acknowledged' })}>
-                      <UserCheck className="size-4" />I have it
+                      <UserCheck className="size-4" />Acknowledge
                     </Button>
                   ) : null}
                   {item.state === 'acknowledged' ? (
                     <Button variant="primary" onClick={() => transition.mutate({ escalationId: item.escalation_id, state: 'owned' })}>
-                      <UserCheck className="size-4" />Take ownership
+                      <UserCheck className="size-4" />Assume Command
                     </Button>
                   ) : null}
                   {item.state === 'owned' || item.state === 'acknowledged' ? (
                     <Button variant="primary" onClick={() => transition.mutate({ escalationId: item.escalation_id, state: 'resolved' })}>
-                      <CheckCircle2 className="size-4" />Resolve
+                      <CheckCircle2 className="size-4" />Close Escalation
                     </Button>
                   ) : null}
                 </div>
               </CardContent>
             </Card>
           )) : (
-            <Card><CardContent><EmptyState title="No open escalations" detail="ORB and communication-channel escalations will appear here with dossier context and continuation state." /></CardContent></Card>
+            <Card><CardContent><EmptyState title="No open escalations" detail="ORB and channel escalations will appear here with dossier context and continuation state." /></CardContent></Card>
           )}
         </div>
 
@@ -164,8 +164,8 @@ export default function Escalations() {
           <CardContent>
             <div className="space-y-3 text-sm leading-6 text-zinc-400">
               <p>Permission boundaries, explicit human requests, security signals, billing or money issues, low-confidence safety answers, and repeated ORB failure can create deterministic escalations.</p>
-              <p>The original conversation stays attached through the continuation reference so the person does not have to start over.</p>
-              <p>SMS, Messenger, and iPhone delivery remain connector-dependent; the escalation record and ownership workflow are local and operational now.</p>
+              <p>The original relay stays attached through the continuation reference so the subject does not have to start over.</p>
+              <p>SMS, Messenger, and iPhone delivery remain connector-dependent; the escalation record and command workflow are local and operational now.</p>
             </div>
           </CardContent>
         </Card>

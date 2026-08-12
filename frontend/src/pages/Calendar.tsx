@@ -33,10 +33,10 @@ export default function Calendar() {
 
   return (
     <div>
-      <SectionHeader title="Calendar" detail="Upcoming CRM appointments and local calendar events." />
+      <SectionHeader title="Event Grid" detail="Upcoming briefings, scheduled commands, and local operation events." />
       <Card>
         <CardHeader>
-          <CardTitle>Upcoming</CardTitle>
+          <CardTitle>Upcoming Events</CardTitle>
         </CardHeader>
         <CardContent>
           {upcoming.data?.events?.length ? (
@@ -45,12 +45,12 @@ export default function Calendar() {
                 <div key={event.id} className="rounded-lg border border-zinc-800 bg-black/25 p-4">
                   <div className="font-medium text-zinc-100">{event.title}</div>
                   <div className="mt-2 text-sm text-zinc-500">{compactDate(event.start_time)}</div>
-                  <div className="mt-1 text-xs text-zinc-600">{event.location || event.event_type || 'local event'}</div>
+                  <div className="mt-1 text-xs text-zinc-600">{event.location || event.event_type || 'local operation'}</div>
                 </div>
               ))}
             </div>
           ) : (
-            <EmptyState title="No upcoming events" detail="Scheduled CRM appointments will appear here." />
+            <EmptyState title="No upcoming events" detail="Scheduled briefings and operation events will appear here." />
           )}
         </CardContent>
       </Card>

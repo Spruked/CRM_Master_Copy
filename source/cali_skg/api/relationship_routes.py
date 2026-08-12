@@ -156,6 +156,32 @@ class CandidateReview(BaseModel):
     reason: Optional[str] = None
 
 
+class DossierMediaCreate(BaseModel):
+    media_kind: str = "person"
+    label: Optional[str] = None
+    image_url: str = Field(min_length=1)
+    notes: Optional[str] = None
+    is_primary: bool = False
+
+
+def _normal_media_kind(value: str) -> str:
+    candidate = str(value or "person").strip().lower()
+    return candidate if candidate in {"person", "place", "building", "other"} else "other"
+
+
+def _media_record(row: sqlite3.Row) -> Dict[str, Any]:
+    item = dict(row)
+    item["is_primary"] = bool(item.get("is_primary"))
+    return item
+
+
+def _require_contact(conn: sqlite3.Connection, contact_id: str) -> sqlite3.Row:
+    row = conn.execute("SELECT * FROM contacts WHERE id=?", (contact_id,)).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Dossier not found")
+    return row
+
+
 @router.get("/businesses")
 def list_businesses(_: str = Depends(verify_admin)) -> Dict[str, Any]:
     _ensure_schema()
@@ -296,6 +322,116 @@ def upsert_contact_business_role(
         "segment_tags": tags,
         "visibility": visibility,
     }
+
+
+@router.get("/contacts/{contact_id}/media")
+def list_contact_media(
+    contact_id: str,
+    _: str = Depends(verify_admin),
+) -> Dict[str, Any]:
+    _ensure_schema()
+    with _connect() as conn:
+        _require_contact(conn, contact_id)
+        rows = conn.execute(
+            """
+            SELECT media_id, contact_id, party_id, media_kind, label, image_url, notes,
+                   is_primary, source, created_at, updated_at
+            FROM dossier_media
+            WHERE contact_id=?
+            ORDER BY is_primary DESC, created_at DESC
+            """,
+            (contact_id,),
+        ).fetchall()
+    media = [_media_record(row) for row in rows]
+    return {"contact_id": contact_id, "media": media, "count": len(media)}
+
+
+@router.post("/contacts/{contact_id}/media")
+def add_contact_media(
+    contact_id: str,
+    payload: DossierMediaCreate,
+    _: str = Depends(verify_admin),
+) -> Dict[str, Any]:
+    _ensure_schema()
+    image_url = payload.image_url.strip()
+    if not image_url:
+        raise HTTPException(status_code=400, detail="Image URL or data URL is required")
+    now = _utc_now()
+    media_kind = _normal_media_kind(payload.media_kind)
+    with _connect() as conn:
+        _require_contact(conn, contact_id)
+        party_id = _party_id_for_contact(contact_id)
+        media_id = _stable_id("media", contact_id, media_kind, image_url, now)
+        if payload.is_primary:
+            conn.execute("UPDATE dossier_media SET is_primary=0, updated_at=? WHERE contact_id=?", (now, contact_id))
+        conn.execute(
+            """
+            INSERT INTO dossier_media(
+                media_id, contact_id, party_id, media_kind, label, image_url,
+                notes, is_primary, source, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'operator', ?, ?)
+            """,
+            (
+                media_id,
+                contact_id,
+                party_id,
+                media_kind,
+                (payload.label or "").strip() or None,
+                image_url,
+                (payload.notes or "").strip() or None,
+                1 if payload.is_primary else 0,
+                now,
+                now,
+            ),
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM dossier_media WHERE media_id=?", (media_id,)).fetchone()
+    return _media_record(row)
+
+
+@router.post("/contacts/{contact_id}/media/{media_id}/primary")
+def set_primary_contact_media(
+    contact_id: str,
+    media_id: str,
+    _: str = Depends(verify_admin),
+) -> Dict[str, Any]:
+    _ensure_schema()
+    now = _utc_now()
+    with _connect() as conn:
+        _require_contact(conn, contact_id)
+        row = conn.execute("SELECT * FROM dossier_media WHERE contact_id=? AND media_id=?", (contact_id, media_id)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Image vault item not found")
+        conn.execute("UPDATE dossier_media SET is_primary=0, updated_at=? WHERE contact_id=?", (now, contact_id))
+        conn.execute("UPDATE dossier_media SET is_primary=1, updated_at=? WHERE contact_id=? AND media_id=?", (now, contact_id, media_id))
+        conn.commit()
+        updated = conn.execute("SELECT * FROM dossier_media WHERE contact_id=? AND media_id=?", (contact_id, media_id)).fetchone()
+    return _media_record(updated)
+
+
+@router.delete("/contacts/{contact_id}/media/{media_id}")
+def delete_contact_media(
+    contact_id: str,
+    media_id: str,
+    _: str = Depends(verify_admin),
+) -> Dict[str, Any]:
+    _ensure_schema()
+    with _connect() as conn:
+        _require_contact(conn, contact_id)
+        row = conn.execute("SELECT is_primary FROM dossier_media WHERE contact_id=? AND media_id=?", (contact_id, media_id)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Image vault item not found")
+        conn.execute("DELETE FROM dossier_media WHERE contact_id=? AND media_id=?", (contact_id, media_id))
+        if bool(row["is_primary"]):
+            replacement = conn.execute(
+                "SELECT media_id FROM dossier_media WHERE contact_id=? ORDER BY created_at DESC LIMIT 1",
+                (contact_id,),
+            ).fetchone()
+            if replacement:
+                conn.execute("UPDATE dossier_media SET is_primary=1, updated_at=? WHERE media_id=?", (_utc_now(), replacement["media_id"]))
+        conn.commit()
+    return {"deleted": True, "media_id": media_id}
 
 
 @router.get("/segments")

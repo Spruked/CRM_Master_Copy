@@ -41,6 +41,20 @@ export type Contact = {
   relevance?: RelevanceAssessment | null
 }
 
+export type DossierMedia = {
+  media_id: string
+  contact_id: string
+  party_id?: string | null
+  media_kind: 'person' | 'place' | 'building' | 'other'
+  label?: string | null
+  image_url: string
+  notes?: string | null
+  is_primary?: boolean
+  source?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+}
+
 export type PipelineStage =
   | 'prospect'
   | 'qualified'

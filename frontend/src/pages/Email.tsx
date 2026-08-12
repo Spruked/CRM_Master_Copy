@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ExternalLink, MailPlus, RefreshCcw, Search, Send, Star, UserRound } from 'lucide-react'
+import { ExternalLink, MailPlus, RefreshCcw, Search, Send, UserRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { SectionHeader } from '@/components/SectionHeader'
@@ -19,6 +19,13 @@ import type { EmailMessage } from '@/types'
 
 const folders = ['inbox', 'sent', 'starred', 'archive', 'trash']
 const primeMailUrl = String(import.meta.env.VITE_PRIME_MAIL_URL || 'http://127.0.0.1:19000').replace(/\/$/, '')
+const folderLabels: Record<string, string> = {
+  inbox: 'Signal Feed',
+  sent: 'Transmissions',
+  starred: 'Star Marks',
+  archive: 'Archive Custody',
+  trash: 'Tombstones',
+}
 
 function extractEmail(value = '') {
   const angle = value.match(/<([^>]+)>/)
@@ -66,7 +73,7 @@ export default function Email() {
   const sync = useMutation({
     mutationFn: async () => api.post('/cali/crm/external-email/sync', { folder, limit: 75, search: search || undefined }),
     onSuccess: async (response) => {
-      toast.success(`Synced ${response.data.processed ?? 0} messages`)
+      toast.success(`Durable handoff processed ${response.data.processed ?? 0} signals`)
       await queryClient.invalidateQueries({ queryKey: ['external-email'] })
       await queryClient.invalidateQueries({ queryKey: ['contacts'] })
     },
@@ -76,7 +83,7 @@ export default function Email() {
   const send = useMutation({
     mutationFn: async () => api.post('/cali/crm/external-email/send', compose),
     onSuccess: () => {
-      toast.success('Send request submitted')
+      toast.success('Transmission queued')
       setCompose({ to: '', subject: '', text: '' })
     },
     onError: (error) => toast.error(error.message),
@@ -108,17 +115,17 @@ export default function Email() {
   return (
     <div>
       <SectionHeader
-        title="Email"
-        detail="PRIME MAIL surfaced inside CALI CRM for sync, triage, contact context, and outbound handoff."
+        title="Signal Desk"
+        detail="VIV Signal Desk for signal triage, dossier context, and durable handoff."
         action={
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={openPrimeMail}>
               <ExternalLink className="size-4" />
-              Open PRIME MAIL
+              Open Signal Node
             </Button>
             <Button variant="primary" onClick={() => sync.mutate()} disabled={sync.isPending}>
               <RefreshCcw className="size-4" />
-              Sync Mail
+              Run Durable Handoff
             </Button>
           </div>
         }
@@ -129,16 +136,16 @@ export default function Email() {
           <CardHeader>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <CardTitle>Mailbox</CardTitle>
-                <div className="mt-1 text-xs text-zinc-500">{messages.length} loaded · {unreadEmails} unread</div>
+                <CardTitle>Ops Channel</CardTitle>
+                <div className="mt-1 text-xs text-zinc-500">{messages.length} signals loaded - {unreadEmails} unread</div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Select value={folder} onChange={(event) => setFolder(event.target.value)}>
-                  {folders.map((item) => <option key={item} value={item}>{item}</option>)}
+                  {folders.map((item) => <option key={item} value={item}>{folderLabels[item] || item}</option>)}
                 </Select>
                 <div className="relative w-72 max-w-full">
                   <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-600" />
-                  <Input className="pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Sender, subject, body" />
+                  <Input className="pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Origin, brief, body" />
                 </div>
               </div>
             </div>
@@ -148,7 +155,7 @@ export default function Email() {
               <div className="overflow-x-auto">
                 <Table>
                   <thead>
-                    <tr><Th></Th><Th>Sender</Th><Th>Subject</Th><Th>Folder</Th><Th>Date</Th></tr>
+                    <tr><Th></Th><Th>Origin Signature</Th><Th>Brief</Th><Th>Vault</Th><Th>Timestamp</Th></tr>
                   </thead>
                   <tbody>
                     {messages.map((message) => {
@@ -161,12 +168,12 @@ export default function Email() {
                         >
                           <Td>
                             <button type="button" onClick={(event) => { event.stopPropagation(); toggleStar.mutate(message) }}>
-                              <Star className={message.starred ? 'size-4 fill-amber-300 text-amber-300' : 'size-4 text-zinc-600'} />
+                              {message.starred ? <img className="size-7 rounded-md object-cover brightness-125 saturate-150 drop-shadow-[0_0_14px_rgba(248,113,113,0.55)]" src="/redVIVlogo.png" alt="" /> : <span className="block size-5 rounded border border-zinc-500" />}
                             </button>
                           </Td>
                           <Td><div className="max-w-64 truncate">{message.sender || 'Unknown'}</div></Td>
                           <Td><div className="max-w-xl truncate font-medium text-zinc-100">{message.subject || '(no subject)'}</div></Td>
-                          <Td><Badge variant="muted">{message.folder || folder}</Badge></Td>
+                          <Td><Badge variant="muted">{folderLabels[message.folder || folder] || message.folder || folder}</Badge></Td>
                           <Td>{compactDate(message.date)}</Td>
                         </tr>
                       )
@@ -175,7 +182,7 @@ export default function Email() {
                 </Table>
               </div>
             ) : (
-              <EmptyState title="No mail loaded" detail="Sync or adjust the current folder/search filters." />
+              <EmptyState title="No signals loaded" detail="Run handoff or adjust the current vault/scan filters." />
             )}
           </CardContent>
         </Card>
@@ -183,18 +190,18 @@ export default function Email() {
         <div className="flex min-w-0 flex-col gap-5">
           <div className="overflow-hidden rounded-xl border border-blue-500/25 bg-[#0d1528] shadow-xl shadow-black/20">
             <div className="border-b border-blue-500/20 bg-[#111d37] px-4 py-3">
-              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-blue-400">Mail Context</div>
-              <div className="mt-1 text-xs text-zinc-500">PRIME MAIL ↔ CALI CRM</div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-blue-400">Signal Evidence</div>
+              <div className="mt-1 text-xs text-zinc-500">VIV signal bridge</div>
             </div>
             <div className="p-4">
               {selected ? (
                 <div className="flex flex-col gap-4 text-sm">
                   <div>
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">From</div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Origin Signature</div>
                     <div className="mt-1 break-all text-zinc-200">{selected.sender || 'Unknown'}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Subject</div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Brief</div>
                     <div className="mt-1 text-zinc-100">{selected.subject || '(no subject)'}</div>
                   </div>
                   <div className="max-h-72 overflow-y-auto rounded-lg border border-zinc-800 bg-black/30 p-3 leading-6 text-zinc-400">
@@ -203,7 +210,7 @@ export default function Email() {
                   <div className="grid grid-cols-2 gap-2">
                     <Button variant="primary" onClick={openPrimeMail}>
                       <ExternalLink className="size-4" />
-                      PRIME MAIL
+                      Signal Node
                     </Button>
                     <Button variant="secondary" onClick={openSenderDossier} disabled={!selectedSenderEmail}>
                       <UserRound className="size-4" />
@@ -212,25 +219,25 @@ export default function Email() {
                   </div>
                 </div>
               ) : (
-                <EmptyState title="Select a message" detail="The selected sender becomes available as CRM dossier context." />
+                <EmptyState title="Select a signal" detail="The origin signature becomes available as dossier context." />
               )}
             </div>
           </div>
 
           <Card>
-            <CardHeader><CardTitle>Send Email</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Compose Transmission</CardTitle></CardHeader>
             <CardContent>
               <form className="flex flex-col gap-3" onSubmit={submitSend}>
-                <Input required type="email" value={compose.to} onChange={(event) => setCompose({ ...compose, to: event.target.value })} placeholder="To" />
-                <Input required value={compose.subject} onChange={(event) => setCompose({ ...compose, subject: event.target.value })} placeholder="Subject" />
-                <Textarea required value={compose.text} onChange={(event) => setCompose({ ...compose, text: event.target.value })} placeholder="Message" />
+                <Input required type="email" value={compose.to} onChange={(event) => setCompose({ ...compose, to: event.target.value })} placeholder="Target" />
+                <Input required value={compose.subject} onChange={(event) => setCompose({ ...compose, subject: event.target.value })} placeholder="Brief" />
+                <Textarea required value={compose.text} onChange={(event) => setCompose({ ...compose, text: event.target.value })} placeholder="Transmission body" />
                 <Button variant="primary" disabled={send.isPending}>
                   <Send className="size-4" />
-                  Send
+                  Execute Send
                 </Button>
                 <div className="flex items-center gap-2 text-xs text-zinc-500">
                   <MailPlus className="size-4" />
-                  Outbound routes through the configured PRIME MAIL bridge.
+                  Outbound transmission routes through the configured VIV bridge.
                 </div>
               </form>
             </CardContent>

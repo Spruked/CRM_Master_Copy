@@ -57,6 +57,26 @@ def run_unified_migration(db_path: str) -> Dict[str, Any]:
         )
         cur.execute(
             """
+            CREATE TABLE IF NOT EXISTS dossier_media (
+                media_id TEXT PRIMARY KEY,
+                contact_id TEXT NOT NULL,
+                party_id TEXT,
+                media_kind TEXT NOT NULL DEFAULT 'person',
+                label TEXT,
+                image_url TEXT NOT NULL,
+                notes TEXT,
+                is_primary INTEGER DEFAULT 0,
+                source TEXT DEFAULT 'operator',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+            )
+            """
+        )
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_dossier_media_contact ON dossier_media(contact_id, is_primary DESC, created_at DESC)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_dossier_media_party ON dossier_media(party_id)")
+        cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS emails (
                 message_id TEXT PRIMARY KEY,
                 thread_id TEXT NOT NULL,

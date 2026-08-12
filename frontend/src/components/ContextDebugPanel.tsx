@@ -18,14 +18,14 @@ export function ContextDebugPanel() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>ORB Context Bridge</CardTitle>
+        <CardTitle>ORB Command Bridge</CardTitle>
         <CardDescription>
-          Shares the current CRM screen context with the ORB Assistant. It is not a contact store or mail sync.
+          Shares the current VIV command context with the ORB node. It is not a dossier store or signal sync.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="flex items-center justify-between rounded-lg border border-zinc-800 p-3">
-          <span className="text-sm text-zinc-400">View</span>
+          <span className="text-sm text-zinc-400">Terminal</span>
           <Badge>{context.currentView}</Badge>
         </div>
         <div className="flex items-center justify-between rounded-lg border border-zinc-800 p-3">
