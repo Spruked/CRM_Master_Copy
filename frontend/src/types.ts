@@ -1,6 +1,26 @@
+export type BusinessRole = {
+  role_id?: string
+  business_id: string
+  role?: string | null
+  segment_tags?: string[]
+  visibility?: 'scoped' | 'strict' | 'cross'
+  valid_from?: string | null
+  valid_to?: string | null
+}
+
+export type RelevanceAssessment = {
+  relevance_score: number
+  connection_strength?: number | null
+  degrees?: number | null
+  factors?: unknown
+  rationale?: string
+  assessed_at?: string
+}
+
 export type Contact = {
   id?: string
   contact_id?: string
+  party_id?: string
   name: string
   type?: string
   contact_type?: string
@@ -16,6 +36,9 @@ export type Contact = {
   next_follow_up_at?: string | null
   created_at?: string | null
   updated_at?: string | null
+  business_roles?: BusinessRole[]
+  segments?: string[]
+  relevance?: RelevanceAssessment | null
 }
 
 export type PipelineStage =
