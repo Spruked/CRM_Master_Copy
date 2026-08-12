@@ -1,6 +1,7 @@
 import { Building2, KeyRound, RefreshCcw, Search, Sparkles } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { ContactIOControls } from '@/components/ContactIOControls'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -44,6 +45,7 @@ export function Topbar({ onTokenClick }: { onTokenClick: () => void }) {
       </div>
 
       <div className="flex items-center gap-2">
+        <ContactIOControls />
         <Button variant="ghost" size="icon" onClick={() => void queryClient.invalidateQueries()}>
           <RefreshCcw className="size-4" />
         </Button>
