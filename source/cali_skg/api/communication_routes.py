@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from cali_skg.api.relationship_routes import _db_path, _ensure_schema, verify_admin
 from cali_skg.core.communication_store import ingest_message, party_timeline, resolve_party_by_email
+from cali_skg.core.dossier_store import party_dossier
 
 router = APIRouter(prefix="/cali/intelligence", tags=["cali-communications"])
 
@@ -37,6 +38,19 @@ def resolve_party(
     _ensure_schema()
     match = resolve_party_by_email(_db_path(), email)
     return {"found": bool(match), "party": match}
+
+
+@router.get("/parties/{party_id:path}/dossier")
+def get_party_dossier(
+    party_id: str,
+    business_scope: str = "all",
+    _: str = Depends(verify_admin),
+) -> Dict[str, Any]:
+    _ensure_schema()
+    dossier = party_dossier(_db_path(), party_id, business_scope=business_scope)
+    if not dossier:
+        raise HTTPException(status_code=404, detail="Party not found")
+    return dossier
 
 
 @router.post("/messages/ingest")
