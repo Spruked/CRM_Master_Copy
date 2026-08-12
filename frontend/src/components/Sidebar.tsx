@@ -1,4 +1,4 @@
-import { Activity, Bot, Calendar, Home, KanbanSquare, Mail, Settings, Users } from 'lucide-react'
+import { Activity, Bot, Calendar, Home, KanbanSquare, Mail, Settings, ShieldAlert, Users } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
@@ -8,6 +8,7 @@ const coreNavItems = [
   { icon: Mail, label: 'Communications', path: '/email' },
   { icon: Activity, label: 'Activity', path: '/activities' },
   { icon: Calendar, label: 'Calendar', path: '/calendar' },
+  { icon: ShieldAlert, label: 'Human Escalations', path: '/escalations' },
   { icon: Bot, label: 'ORB Assistant', path: '/orb' },
 ]
 
@@ -45,20 +46,13 @@ export function Sidebar({ onTokenClick }: { onTokenClick: () => void }) {
             <p className="-mt-1 text-[10px] tracking-[3px] text-cyan-300">RELATIONSHIPS</p>
           </div>
         </div>
-        <p className="mt-4 text-xs leading-tight text-cyan-100/70">
-          PEOPLE. CONTEXT. CONNECTIONS.
-        </p>
-        <p className="mt-1 text-[10px] text-[#7c3aed]/90">
-          Relationship and communications intelligence
-        </p>
+        <p className="mt-4 text-xs leading-tight text-cyan-100/70">PEOPLE. CONTEXT. CONNECTIONS.</p>
+        <p className="mt-1 text-[10px] text-[#7c3aed]/90">Relationship and communications intelligence</p>
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-6">
         {coreNavItems.map((item) => <NavigationLink key={item.path} {...item} />)}
-
-        <div className="mb-1 mt-5 px-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-100/35">
-          Optional features
-        </div>
+        <div className="mb-1 mt-5 px-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-100/35">Optional features</div>
         {featureNavItems.map((item) => <NavigationLink key={item.path} {...item} />)}
       </nav>
 
