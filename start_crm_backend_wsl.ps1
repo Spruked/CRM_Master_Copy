@@ -22,7 +22,7 @@ try {
 }
 
 if ($wslHasVenv) {
-  wsl -e bash -lc "cd '$wslRoot' && set -a && [ -f .env ] && source <(sed 's/\r$//' .env) && set +a && : `${CALI_CRM_PORT:=21000} && : `${PRIME_MAIL_API_URL:=http://127.0.0.1:19000/api} && : `${SPRUK_EMAIL_API_URL:=$PRIME_MAIL_API_URL} && export CALI_CRM_PORT PRIME_MAIL_API_URL SPRUK_EMAIL_API_URL && export PYTHONPATH='$wslRoot/source' && '$wslVenv/bin/python' source/cali_skg/api/cali_routes.py"
+  wsl -e bash -lc "cd '$wslRoot' && set -a && [ -f .env ] && source <(sed 's/\r$//' .env) && set +a && : `${CALI_CRM_PORT:=21000} && : `${PRIME_MAIL_API_URL:=http://127.0.0.1:19000/api} && : `${SPRUK_EMAIL_API_URL:=$PRIME_MAIL_API_URL} && export CALI_CRM_PORT PRIME_MAIL_API_URL SPRUK_EMAIL_API_URL && export PYTHONPATH='$wslRoot/source' && '$wslVenv/bin/python' source/cali_skg/api/app.py"
   exit $LASTEXITCODE
 }
 
@@ -40,4 +40,4 @@ if ($caliDataRoot -like "/mnt/*") {
   $env:CALI_DATA_ROOT = $normalized
 }
 $env:PYTHONPATH = Join-Path $root "source"
-python (Join-Path $root "source\cali_skg\api\cali_routes.py")
+python (Join-Path $root "source\cali_skg\api\app.py")
