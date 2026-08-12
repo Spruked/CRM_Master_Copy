@@ -29,8 +29,8 @@ export type Escalation = {
   created_at: string
 }
 
-const priorityTone: Record<string, 'danger' | 'warning' | 'muted'> = {
-  p0: 'danger',
+const priorityTone: Record<string, 'warning' | 'muted'> = {
+  p0: 'warning',
   p1: 'warning',
   p2: 'muted',
   p3: 'muted',
@@ -102,16 +102,12 @@ export default function Escalations() {
                     <div className="min-w-0">
                       <CardTitle className="capitalize">{readable(item.trigger_reason)}</CardTitle>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-                        <span>{item.channel}</span>
-                        <span>·</span>
-                        <span>{item.business_scope || 'unscoped'}</span>
-                        <span>·</span>
-                        <span>{formatDate(item.created_at)}</span>
+                        <span>{item.channel}</span><span>·</span><span>{item.business_scope || 'unscoped'}</span><span>·</span><span>{formatDate(item.created_at)}</span>
                       </div>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Badge variant={priorityTone[item.priority] || 'muted'}>{item.priority.toUpperCase()}</Badge>
+                    <Badge variant={priorityTone[item.priority] || 'muted'} className={item.priority === 'p0' ? 'border-red-800/60 bg-red-950/50 text-red-200' : undefined}>{item.priority.toUpperCase()}</Badge>
                     <Badge variant="muted">{item.state}</Badge>
                   </div>
                 </div>
@@ -137,26 +133,22 @@ export default function Escalations() {
                 <div className="mt-4 flex flex-wrap justify-end gap-2">
                   {item.continuation_ref ? (
                     <Button variant="secondary" onClick={() => window.open(String(item.continuation_ref), '_blank', 'noopener,noreferrer')}>
-                      <ExternalLink className="size-4" />
-                      Continue conversation
+                      <ExternalLink className="size-4" />Continue conversation
                     </Button>
                   ) : null}
                   {item.state === 'created' || item.state === 'notified' ? (
                     <Button variant="secondary" onClick={() => transition.mutate({ escalationId: item.escalation_id, state: 'acknowledged' })}>
-                      <UserCheck className="size-4" />
-                      I have it
+                      <UserCheck className="size-4" />I have it
                     </Button>
                   ) : null}
                   {item.state === 'acknowledged' ? (
                     <Button variant="primary" onClick={() => transition.mutate({ escalationId: item.escalation_id, state: 'owned' })}>
-                      <UserCheck className="size-4" />
-                      Take ownership
+                      <UserCheck className="size-4" />Take ownership
                     </Button>
                   ) : null}
                   {item.state === 'owned' || item.state === 'acknowledged' ? (
                     <Button variant="primary" onClick={() => transition.mutate({ escalationId: item.escalation_id, state: 'resolved' })}>
-                      <CheckCircle2 className="size-4" />
-                      Resolve
+                      <CheckCircle2 className="size-4" />Resolve
                     </Button>
                   ) : null}
                 </div>
