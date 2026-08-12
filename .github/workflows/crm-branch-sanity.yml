@@ -2,7 +2,7 @@ name: CRM branch sanity
 
 on:
   push:
-    branches: [crm-dossier-refinement]
+    branches: [crm-dossier-refinement, crm-local-integration]
   pull_request:
     branches: [main]
 
@@ -31,6 +31,6 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile CALI API and migrations
-        run: python -m compileall -q source/cali_skg/api source/cali_skg/migrations
-      - name: Run relationship substrate tests
+        run: python -m compileall -q source/cali_skg/api source/cali_skg/core source/cali_skg/migrations
+      - name: Run relationship and communications substrate tests
         run: python source/tests/test_relationship_schema.py
