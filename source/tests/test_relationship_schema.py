@@ -11,6 +11,7 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1]
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from cali_skg.core.communication_store import ingest_message, party_timeline
 from cali_skg.migrations.relationship_intelligence_migration import run_migration
 
 
@@ -113,6 +114,48 @@ class RelationshipIntelligenceSchemaTests(unittest.TestCase):
                     """,
                     claim,
                 )
+
+    def test_prime_mail_message_ingest_is_idempotent_and_links_known_party(self) -> None:
+        run_migration(self.db_path)
+        payload = {
+            "channel": "email",
+            "provider": "prime_mail",
+            "account_identity": "bryan@spruked.com",
+            "business_scope": "spruked",
+            "external_id": "<msg-1@example.com>",
+            "mailbox_id": "inbox",
+            "direction": "inbound",
+            "occurred_at": "2026-08-11T20:00:00-05:00",
+            "raw_locator": "R:/email_client/vault/raw_email/aa/message.eml",
+            "content_hash": "a" * 64,
+            "thread_external_id": "thread-1",
+            "subject": "Hello CALI",
+            "sender_email": "Ada@Example.com",
+            "sender_name": "Ada Example",
+            "recipient_emails": ["bryan@spruked.com"],
+        }
+
+        first = ingest_message(self.db_path, payload)
+        second = ingest_message(self.db_path, payload)
+
+        self.assertEqual(first["message_id"], second["message_id"])
+        self.assertEqual(first["primary_party_id"], "legacy-contact:contact-1")
+
+        with closing(sqlite3.connect(self.db_path)) as conn:
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM message_event").fetchone()[0], 1)
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM conversation_thread").fetchone()[0], 1)
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM communication_account").fetchone()[0], 1)
+
+        timeline = party_timeline(
+            self.db_path,
+            "legacy-contact:contact-1",
+            business_scope="spruked",
+            channel="email",
+        )
+        self.assertEqual(len(timeline), 1)
+        self.assertEqual(timeline[0]["external_id"], "<msg-1@example.com>")
+        self.assertEqual(timeline[0]["direction"], "inbound")
+        self.assertEqual(timeline[0]["raw_locator"], payload["raw_locator"])
 
 
 if __name__ == "__main__":
