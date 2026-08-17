@@ -4,6 +4,7 @@ from cali_skg.api.cali_routes import _crm_port, app, verify_admin as cali_verify
 from cali_skg.api.communication_routes import router as communication_router
 from cali_skg.api.contact_io_routes import router as contact_io_router
 from cali_skg.api.csv_contact_io_routes import router as csv_contact_io_router
+from cali_skg.api.dossier_backfill_routes import router as dossier_backfill_router
 from cali_skg.api.identity_operations_routes import router as identity_operations_router
 from cali_skg.api.operations_routes import router as operations_router
 from cali_skg.api.relationship_routes import (
@@ -17,6 +18,7 @@ app.include_router(relationship_intelligence_router)
 app.include_router(communication_router)
 app.include_router(contact_io_router)
 app.include_router(csv_contact_io_router)
+app.include_router(dossier_backfill_router)
 app.include_router(operations_router)
 app.include_router(identity_operations_router)
 
