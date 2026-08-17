@@ -25,6 +25,15 @@ function detectCsvSource(content: string): CsvSource {
   return 'generic'
 }
 
+function importedContactIds(result: any): string[] {
+  const ids = new Set<string>()
+  for (const item of Array.isArray(result?.merge_audit) ? result.merge_audit : []) {
+    const id = String(item?.contact_id || '').trim()
+    if (id) ids.add(id)
+  }
+  return Array.from(ids)
+}
+
 export function ContactIOControls() {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const { businessScope } = useBusinessContext()
@@ -33,6 +42,7 @@ export function ContactIOControls() {
     try {
       const lowerName = file.name.toLowerCase()
       const isCsv = lowerName.endsWith('.csv') || file.type.toLowerCase().includes('csv')
+      const targetScope = businessScope === 'all' ? 'personal' : businessScope
 
       if (isCsv) {
         const content = await file.text()
@@ -42,24 +52,31 @@ export function ContactIOControls() {
 
         const response = await api.post(`/cali/contacts/import/csv/${source}`, form, {
           params: {
-            default_contact_type: 'personal',
+            default_contact_type: targetScope === 'personal' ? 'personal' : 'professional',
             default_stage: 'active',
           },
           headers: { 'Content-Type': 'multipart/form-data' },
         })
         const result = response.data || {}
+        const ids = importedContactIds(result)
+        const dossierResponse = await api.post('/cali/intelligence/dossiers/backfill', {
+          business_scope: targetScope,
+          contact_ids: ids,
+          only_unscoped: true,
+        })
         const counts = result.counts || {}
+        const dossierCount = Number(dossierResponse.data?.roles_assigned || 0)
         toast.success(
-          `Dossiers imported (${source}) - ${Number(counts.created || 0)} new - ${Number(counts.merged || 0)} merged - ${Number(counts.review_candidates || 0)} review - ${Number(counts.errors || 0)} errors`,
+          `Dossiers imported (${source}) - ${Number(counts.created || 0)} new - ${Number(counts.merged || 0)} merged - ${dossierCount} dossiers scoped - ${Number(counts.review_candidates || 0)} review - ${Number(counts.errors || 0)} errors`,
         )
-        window.dispatchEvent(new CustomEvent('cali-contacts-imported', { detail: result }))
+        window.dispatchEvent(new CustomEvent('cali-contacts-imported', { detail: { ...result, dossier_backfill: dossierResponse.data } }))
         return
       }
 
       const content = await file.text()
       const response = await api.post('/cali/intelligence/vcard/import', {
         content,
-        business_scope: businessScope === 'all' ? 'personal' : businessScope,
+        business_scope: targetScope,
         run_relationship_scan: false,
       })
       const result = response.data || {}
