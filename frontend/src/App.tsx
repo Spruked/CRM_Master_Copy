@@ -1,7 +1,5 @@
-import { useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { AuthDialog } from '@/components/AuthDialog'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Sidebar } from '@/components/Sidebar'
 import { Topbar } from '@/components/Topbar'
@@ -18,7 +16,6 @@ import { BusinessContextProvider } from '@/providers/BusinessContextProvider'
 import { CRMProvider } from '@/providers/CRMProvider'
 
 function App() {
-  const [authOpen, setAuthOpen] = useState(false)
   const [showSplash, setShowSplash] = useState(() => sessionStorage.getItem('cali_splash_seen') !== '1')
 
   function completeSplash() {
@@ -35,9 +32,9 @@ function App() {
               {showSplash ? <SplashScreen onComplete={completeSplash} /> : null}
             </AnimatePresence>
             <div className="flex h-screen overflow-hidden bg-[#0b0f2a] text-zinc-100">
-              <Sidebar onTokenClick={() => setAuthOpen(true)} />
+              <Sidebar />
               <div className="flex min-w-0 flex-1 flex-col">
-                <Topbar onTokenClick={() => setAuthOpen(true)} />
+                <Topbar />
                 <main className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#17306d_0%,#122757_38%,#0b0f2a_100%)] p-5">
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
@@ -53,7 +50,6 @@ function App() {
                 </main>
               </div>
             </div>
-            <AuthDialog open={authOpen} onClose={() => setAuthOpen(false)} />
           </CRMProvider>
         </BusinessContextProvider>
       </BrowserRouter>
