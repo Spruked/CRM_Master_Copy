@@ -1,4 +1,4 @@
-import { Building2, KeyRound, RefreshCcw, Search, Sparkles } from 'lucide-react'
+import { Building2, RefreshCcw, Search, Sparkles } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { ContactIOControls } from '@/components/ContactIOControls'
@@ -9,7 +9,7 @@ import { API_URL } from '@/lib/api'
 import { openDesktopOrb } from '@/lib/orb-integration'
 import { useBusinessContext } from '@/providers/BusinessContextProvider'
 
-export function Topbar({ onTokenClick }: { onTokenClick: () => void }) {
+export function Topbar() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { businessScope, setBusinessScope, businesses, isLoading } = useBusinessContext()
@@ -59,10 +59,6 @@ export function Topbar({ onTokenClick }: { onTokenClick: () => void }) {
         >
           <Sparkles className="size-4" />
           ORB
-        </Button>
-        <Button variant="secondary" size="sm" onClick={onTokenClick}>
-          <KeyRound className="size-4" />
-          Cipher
         </Button>
       </div>
     </header>
