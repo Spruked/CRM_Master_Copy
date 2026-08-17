@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
 import { useBusinessContext } from '@/providers/BusinessContextProvider'
 
+type ContactFormat = 'vcf' | 'csv'
+
 export function ContactIOControls() {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const { businessScope } = useBusinessContext()
@@ -12,14 +14,18 @@ export function ContactIOControls() {
   async function importFile(file: File) {
     try {
       const content = await file.text()
-      const response = await api.post('/cali/intelligence/vcard/import', {
+      const lowerName = file.name.toLowerCase()
+      const isCsv = lowerName.endsWith('.csv') || file.type.toLowerCase().includes('csv')
+      const endpoint = isCsv ? '/cali/intelligence/csv/import' : '/cali/intelligence/vcard/import'
+      const response = await api.post(endpoint, {
         content,
         business_scope: businessScope === 'all' ? 'personal' : businessScope,
         run_relationship_scan: true,
       })
       const result = response.data || {}
+      const seen = Number(result.rows_seen || result.cards_seen || 0)
       toast.success(
-        `Dossiers compiled - ${Number(result.created || 0)} new - ${Number(result.existing_exact_email || 0)} matched - ${Number(result.phone_review_queued || 0)} review`,
+        `Dossiers compiled - ${seen} read - ${Number(result.created || 0)} new - ${Number(result.existing_exact_email || 0)} matched - ${Number(result.phone_review_queued || 0)} review`,
       )
       window.dispatchEvent(new CustomEvent('cali-contacts-imported', { detail: result }))
     } catch (error) {
@@ -29,10 +35,11 @@ export function ContactIOControls() {
     }
   }
 
-  async function exportContacts() {
+  async function exportContacts(format: ContactFormat) {
     try {
+      const endpoint = format === 'csv' ? '/cali/intelligence/csv/export' : '/cali/intelligence/vcard/export'
       const response = await api.post(
-        '/cali/intelligence/vcard/export',
+        endpoint,
         { contact_ids: [], business_scope: businessScope },
         { responseType: 'blob' },
       )
@@ -40,12 +47,13 @@ export function ContactIOControls() {
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
       anchor.href = url
-      anchor.download = businessScope === 'all' ? 'viv-dossiers.vcf' : `viv-${businessScope}-dossiers.vcf`
+      const scope = businessScope === 'all' ? 'viv-dossiers' : `viv-${businessScope}-dossiers`
+      anchor.download = `${scope}.${format}`
       document.body.appendChild(anchor)
       anchor.click()
       anchor.remove()
       URL.revokeObjectURL(url)
-      toast.success('iPhone-compatible dossier file created')
+      toast.success(format === 'csv' ? 'CSV dossier file created' : 'iPhone-compatible dossier file created')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Dossier export failed')
     }
@@ -57,19 +65,23 @@ export function ContactIOControls() {
         ref={inputRef}
         className="hidden"
         type="file"
-        accept=".vcf,text/vcard,text/x-vcard"
+        accept=".vcf,.csv,text/vcard,text/x-vcard,text/csv"
         onChange={(event) => {
           const file = event.target.files?.[0]
           if (file) void importFile(file)
         }}
       />
-      <Button size="sm" variant="secondary" onClick={() => inputRef.current?.click()} title="Import iPhone/vCard dossiers">
+      <Button size="sm" variant="secondary" onClick={() => inputRef.current?.click()} title="Import VCF or CSV dossiers">
         <Upload className="size-3.5" />
         Import dossiers
       </Button>
-      <Button size="sm" variant="secondary" onClick={() => void exportContacts()} title="Export dossiers to iPhone/vCard">
+      <Button size="sm" variant="secondary" onClick={() => void exportContacts('vcf')} title="Export dossiers as iPhone-compatible vCard">
         <Download className="size-3.5" />
-        Export dossiers
+        Export VCF
+      </Button>
+      <Button size="sm" variant="secondary" onClick={() => void exportContacts('csv')} title="Export dossiers as CSV">
+        <Download className="size-3.5" />
+        Export CSV
       </Button>
     </div>
   )
