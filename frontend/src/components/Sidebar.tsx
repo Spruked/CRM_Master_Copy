@@ -1,4 +1,4 @@
-import { Activity, Bot, Calendar, Home, KanbanSquare, Mail, Settings, ShieldAlert, Users } from 'lucide-react'
+import { Activity, Bot, Calendar, Home, KanbanSquare, Mail, ShieldAlert, Users } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
@@ -35,7 +35,7 @@ function NavigationLink({ icon: Icon, label, path }: { icon: typeof Home; label:
   )
 }
 
-export function Sidebar({ onTokenClick }: { onTokenClick: () => void }) {
+export function Sidebar() {
   return (
     <aside className="flex h-screen w-72 shrink-0 flex-col border-r border-blue-900/70 bg-[#0b0f2a]">
       <div className="border-b border-blue-900/70 p-6">
@@ -57,15 +57,7 @@ export function Sidebar({ onTokenClick }: { onTokenClick: () => void }) {
       </nav>
 
       <div className="mt-auto border-t border-blue-900/70 p-4">
-        <button
-          type="button"
-          onClick={onTokenClick}
-          className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-xs font-medium text-cyan-100/60 transition hover:bg-[#0f1b3d] hover:text-cyan-100"
-        >
-          <Settings className="size-4" />
-          Update Cipher
-        </button>
-        <p className="mt-4 text-center text-[10px] text-cyan-100/45">2026 Spruked - VIV</p>
+        <p className="text-center text-[10px] text-cyan-100/45">2026 Spruked - VIV</p>
       </div>
     </aside>
   )
