@@ -19,7 +19,7 @@ type ChatMessage = {
 export default function OrbAssistant() {
   const [prompt, setPrompt] = useState('')
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'orb', text: 'VIV command bridge online. Ask for dossier context, operation state, or next commands.', meta: 'local' },
+    { role: 'orb', text: 'VIV Command Node online. Ask about dossiers, relationships, signals, timelines, events, or current system state.', meta: 'local' },
   ])
 
   const askOrb = useMutation({
@@ -55,14 +55,14 @@ export default function OrbAssistant() {
 
   return (
     <div>
-      <SectionHeader title="Floating Command Node" detail="Dedicated VIV bridge into the local ORB response endpoint." />
+      <SectionHeader title="Command Node" detail="Conversational access to VIV context and the local ORB reasoning endpoint." />
 
       <Card className="mx-auto flex h-[calc(100vh-10rem)] max-w-5xl flex-col">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Bot className="size-5" />
-              VIV ORB
+              VIV Command Node
             </CardTitle>
             <Badge variant="success">/cali/orb/respond</Badge>
           </div>
@@ -87,10 +87,10 @@ export default function OrbAssistant() {
             </div>
           </div>
           <form className="flex gap-3" onSubmit={submit}>
-            <Textarea className="min-h-16 flex-1" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Ask VIV about dossiers, operation state, signals, or substrate status..." />
+            <Textarea className="min-h-16 flex-1" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Ask VIV about a dossier, relationship, signal, timeline, event, or system state..." />
             <Button variant="primary" className="h-16" disabled={askOrb.isPending || !prompt.trim()}>
               <Send className="size-4" />
-              Send Command
+              Send
             </Button>
           </form>
         </CardContent>
