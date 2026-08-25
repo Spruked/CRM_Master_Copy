@@ -27,7 +27,7 @@ export default function PipelineKanban() {
       <div className="mb-5 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-zinc-100">Operation Board</h2>
-          <p className="mt-1 text-sm text-zinc-500">Drag dossiers between escalation states to update VIV custody.</p>
+          <p className="mt-1 text-sm text-zinc-500">Track dossiers through their current relationship or operation state.</p>
         </div>
         <Button variant="ghost" onClick={() => window.location.reload()}>
           <RefreshCcw className="size-4" />
