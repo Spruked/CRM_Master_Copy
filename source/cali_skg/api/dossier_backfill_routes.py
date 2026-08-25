@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from cali_skg.api.relationship_routes import _db_path, verify_admin
 from cali_skg.api.unified_migration import run_unified_migration
+from cali_skg.core.dossier_package_store import ensure_all_dossier_packages
 
 router = APIRouter(prefix="/cali/intelligence/dossiers", tags=["cali-dossier-backfill"])
 
@@ -44,8 +45,9 @@ def backfill_dossiers(
     """Promote legacy/imported contact rows into canonical VIV dossiers.
 
     The unified migration is rerun first so every selected contact has a Party and
-    identity claims. Then contacts with no active compartment role are assigned to
-    the requested compartment. Existing active roles are preserved by default.
+    identity claims. Contacts with no active business-context role are assigned to
+    the requested context. Existing active roles are preserved by default. Every
+    selected dossier also receives its durable VIV package and image folder.
     """
 
     db_path = _db_path()
@@ -59,6 +61,7 @@ def backfill_dossiers(
     roles_assigned = 0
     already_scoped = 0
     missing_contacts: List[str] = []
+    selected_ids: List[str] = []
 
     with sqlite3.connect(db_path) as conn:
         conn.row_factory = sqlite3.Row
@@ -89,12 +92,11 @@ def backfill_dossiers(
             contact_id = str(row["id"] or "").strip()
             if not contact_id:
                 continue
+            selected_ids.append(contact_id)
             party_id = f"legacy-contact:{contact_id}"
 
             party = conn.execute("SELECT party_id FROM party WHERE party_id=?", (party_id,)).fetchone()
             if not party:
-                # run_unified_migration should have created this Party. Fail loudly
-                # rather than creating an identity object without its claims/evidence.
                 raise HTTPException(status_code=500, detail=f"Canonical Party backfill missing for contact {contact_id}")
             parties_ready += 1
 
@@ -141,6 +143,8 @@ def backfill_dossiers(
 
         conn.commit()
 
+    package_result = ensure_all_dossier_packages(db_path, selected_ids)
+
     return {
         "status": "success",
         "business_scope": business_scope,
@@ -148,6 +152,7 @@ def backfill_dossiers(
         "parties_ready": parties_ready,
         "roles_assigned": roles_assigned,
         "already_scoped": already_scoped,
+        "packages_ready": package_result.get("created_or_verified", 0),
         "missing_contacts": missing_contacts,
         "migration_steps": migration.get("steps", []),
     }
