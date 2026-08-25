@@ -74,9 +74,9 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
             transition={{ delay: 0.42 }}
             className="mb-12 max-w-md text-xl leading-tight text-cyan-100/70"
           >
-            Dossier Intelligence.
+            Life Management & Navigation System
             <br />
-            Orbit Faster.
+            Know before you need to know.
           </motion.p>
 
           <div className="w-80">
@@ -88,7 +88,7 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
               />
             </div>
             <div className="flex justify-between text-xs text-cyan-100/60">
-              <span>INITIALIZING VECTOR VAULT</span>
+              <span>INITIALIZING INTELLIGENCE VAULT</span>
               <span>{Math.floor(progress)}%</span>
             </div>
           </div>
@@ -99,7 +99,7 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
             transition={{ duration: 2, repeat: Infinity }}
             className="mt-12 text-[10px] tracking-widest text-cyan-100/45"
           >
-            LOCAL INTELLIGENCE COMMAND CENTER
+            BE SMART. BE INFORMED. BE READY.
           </motion.p>
         </div>
 
