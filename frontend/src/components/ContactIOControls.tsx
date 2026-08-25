@@ -126,7 +126,7 @@ export function ContactIOControls() {
         const source = detectCsvSource(content)
 
         if (source === 'generic' && isVivCsv(content)) {
-          const response = await api.post('/cali/intelligence/csv/import', {
+          const response = await api.post('/cali/intelligence/dossiers/import/csv', {
             content: normalizeVivCsv(content),
             business_scope: targetScope,
             run_relationship_scan: false,
