@@ -6,9 +6,12 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SectionHeader } from '@/components/SectionHeader'
+import { pipelineStages } from '@/hooks/usePipeline'
 import { api } from '@/lib/api'
 import { updateCRMContext } from '@/lib/orb-integration'
 import type { UnifiedStatus } from '@/types'
+
+const lifecycleLabels = Object.fromEntries(pipelineStages.map((stage) => [stage.id, stage.label])) as Record<string, string>
 
 function StatCard({ title, value, detail, icon: Icon }: { title: string; value: string | number; detail: string; icon: typeof Server }) {
   const valueText = String(value)
@@ -84,13 +87,13 @@ export default function Dashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Operational Snapshot</CardTitle>
-            <CardDescription>Current dossier distribution across the existing workflow states.</CardDescription>
+            <CardDescription>Current dossier distribution across the VIV lifecycle.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {Object.entries(pipeline?.stages || {}).map(([stage, count]) => (
                 <div key={stage} className="rounded-lg border border-zinc-800 bg-black/30 p-4">
-                  <div className="text-xs uppercase text-zinc-500">{stage.replaceAll('_', ' ')}</div>
+                  <div className="text-xs uppercase text-zinc-500">{lifecycleLabels[stage] || stage.replaceAll('_', ' ')}</div>
                   <div className="mt-2 text-2xl font-semibold text-zinc-100">{count}</div>
                 </div>
               ))}
