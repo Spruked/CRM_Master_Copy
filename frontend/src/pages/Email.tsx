@@ -22,7 +22,7 @@ const primeMailUrl = String(import.meta.env.VITE_PRIME_MAIL_URL || 'http://127.0
 const folderLabels: Record<string, string> = {
   inbox: 'Inbox',
   sent: 'Sent',
-  starred: 'Marked',
+  starred: 'Starred',
   archive: 'Archive',
   trash: 'Trash',
 }
@@ -167,8 +167,8 @@ export default function Email() {
                           onClick={() => setSelected(message)}
                         >
                           <Td>
-                            <button type="button" onClick={(event) => { event.stopPropagation(); toggleStar.mutate(message) }}>
-                              {message.starred ? <img className="size-7 rounded-md object-cover brightness-125 saturate-150 drop-shadow-[0_0_14px_rgba(248,113,113,0.55)]" src="/redVIVlogo.png" alt="" /> : <span className="block size-5 rounded border border-zinc-500" />}
+                            <button type="button" onClick={(event) => { event.stopPropagation(); toggleStar.mutate(message) }} title={message.starred ? 'Remove star' : 'Star message'}>
+                              {message.starred ? <img className="size-7 rounded-md object-cover brightness-125 saturate-150 drop-shadow-[0_0_14px_rgba(248,113,113,0.55)]" src="/redVIVlogo.png" alt="Starred" /> : <span className="block size-5 rounded border border-zinc-500" />}
                             </button>
                           </Td>
                           <Td><div className="max-w-64 truncate">{message.sender || 'Unknown'}</div></Td>
