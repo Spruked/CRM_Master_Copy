@@ -44,7 +44,7 @@ export default function Activities() {
         metadata: { source: 'crm_frontend' },
       }),
     onSuccess: async () => {
-      toast.success('Event logged')
+      toast.success('Timeline event added')
       setSummary('')
       await queryClient.invalidateQueries({ queryKey: ['activities', activeContactId] })
     },
@@ -61,13 +61,13 @@ export default function Activities() {
 
   return (
     <div>
-      <SectionHeader title="Event Timeline" detail="Per-subject event trail, claim notes, signal sync events, and operator commands." />
+      <SectionHeader title="Timeline" detail="Chronological record of observations, communications, meetings, follow-ups, signals, and milestones for each dossier." />
 
       <div className="grid gap-5 xl:grid-cols-[1fr_24rem]">
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <CardTitle>Event Feed</CardTitle>
+              <CardTitle>Intelligence Timeline</CardTitle>
               <Select value={activeContactId} onChange={(event) => setContactId(event.target.value)} className="md:w-80">
                 {contacts.map((contact) => (
                   <option key={contact.id || contact.contact_id || contact.email || contact.name} value={contact.id || contact.contact_id}>
@@ -93,27 +93,27 @@ export default function Activities() {
                 ))}
               </div>
             ) : (
-              <EmptyState title="No events yet" detail="Select a subject or log the first event." />
+              <EmptyState title="No timeline events yet" detail="Select a dossier or add its first observation, communication, meeting, or milestone." />
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Log Event</CardTitle>
+            <CardTitle>Add Timeline Event</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <Select value={activityType} onChange={(event) => setActivityType(event.target.value)}>
-              <option value="note">Claim Note</option>
-              <option value="call">Voice Line</option>
-              <option value="meeting">Briefing</option>
-              <option value="follow_up">Follow-up Command</option>
-              <option value="email">Signal</option>
+              <option value="note">Observation</option>
+              <option value="call">Call</option>
+              <option value="meeting">Meeting</option>
+              <option value="follow_up">Follow-up</option>
+              <option value="email">Email Signal</option>
             </Select>
-            <Textarea value={summary} onChange={(event) => setSummary(event.target.value)} placeholder="Event brief" />
+            <Textarea value={summary} onChange={(event) => setSummary(event.target.value)} placeholder="What happened, changed, or became relevant?" />
             <Button variant="primary" disabled={!activeContactId || !summary.trim() || createActivity.isPending} onClick={() => createActivity.mutate()}>
               <Plus className="size-4" />
-              Log event
+              Add to Timeline
             </Button>
           </CardContent>
         </Card>
