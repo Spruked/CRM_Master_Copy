@@ -33,7 +33,7 @@ export function DossierLinksRibbon({ contactId }: { contactId: string }) {
       const response = await api.get(`/cali/contacts/${contactId}/external-links`)
       setLinks(Array.isArray(response.data) ? response.data : [])
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to load dossier links'
+      const message = error instanceof Error ? error.message : 'Failed to load dossier references'
       toast.error(message)
     }
   }
@@ -44,7 +44,7 @@ export function DossierLinksRibbon({ contactId }: { contactId: string }) {
       await api.post(`/cali/contacts/${contactId}/external-links/generate`)
       await fetchLinks()
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Generation error'
+      const message = error instanceof Error ? error.message : 'Reference generation failed'
       toast.error(message)
     } finally {
       setLoading(false)
@@ -54,12 +54,12 @@ export function DossierLinksRibbon({ contactId }: { contactId: string }) {
   const handleDelete = async (event: React.MouseEvent, id: number) => {
     event.stopPropagation()
     event.preventDefault()
-    if (!window.confirm('Sever link node from dossier?')) return
+    if (!window.confirm('Remove this external reference from the dossier?')) return
     try {
       await api.delete(`/cali/contacts/${contactId}/external-links/${id}`)
       await fetchLinks()
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Deletion error'
+      const message = error instanceof Error ? error.message : 'Reference removal failed'
       toast.error(message)
     }
   }
@@ -82,17 +82,17 @@ export function DossierLinksRibbon({ contactId }: { contactId: string }) {
     <div className="w-full rounded border border-zinc-800 bg-zinc-950 p-3 font-mono">
       <div className="mb-2 flex items-center justify-between border-b border-zinc-800 pb-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Dossier Execution Layer</span>
-          <span className="rounded border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 text-[10px] text-zinc-500">{links.length} nodes indexed</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">External References</span>
+          <span className="rounded border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 text-[10px] text-zinc-500">{links.length} linked</span>
         </div>
         <Button variant="secondary" size="sm" disabled={loading} onClick={handleGenerate} className="h-7 text-[11px]">
           <RefreshCcw size={10} className={loading ? 'animate-spin' : ''} />
-          Generate Fallbacks
+          Generate References
         </Button>
       </div>
 
       {links.length === 0 ? (
-        <div className="py-1 text-[11px] italic text-zinc-600">No identity verification pathways instantiated for this profile. Click generate to build fallbacks.</div>
+        <div className="py-1 text-[11px] italic text-zinc-600">No external references are linked to this dossier. Generate references to create standard search and verification paths.</div>
       ) : (
         <div className="flex flex-wrap gap-2">
           {links.map((link) => {
@@ -102,7 +102,7 @@ export function DossierLinksRibbon({ contactId }: { contactId: string }) {
                 key={link.id}
                 onClick={() => executeLink(link.url)}
                 className={`group flex cursor-pointer items-center gap-2 rounded border border-zinc-800 bg-zinc-900/60 px-2 py-1 text-xs transition-all ${display.color}`}
-                title={`Target: ${link.url}\nType: ${link.link_type}\nSource: ${link.source}`}
+                title={`Destination: ${link.url}\nType: ${link.link_type}\nSource: ${link.source}`}
               >
                 <div className="flex items-center gap-1.5">
                   {display.icon}
@@ -115,7 +115,7 @@ export function DossierLinksRibbon({ contactId }: { contactId: string }) {
                 <button
                   onClick={(event) => handleDelete(event, link.id)}
                   className="ml-1 text-zinc-600 opacity-0 transition-opacity hover:text-rose-400 group-hover:opacity-100"
-                  title="Purge Link Node"
+                  title="Remove reference"
                 >
                   <Trash2 size={11} />
                 </button>
