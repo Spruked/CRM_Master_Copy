@@ -79,12 +79,12 @@ export default function Escalations() {
   return (
     <div>
       <SectionHeader
-        title="Escalation Queue"
-        detail="Human review queue for ORB, signals, channels, web intake, and future field lines."
+        title="Escalations"
+        detail="Items requiring human attention, judgment, approval, ownership, or follow-through."
         action={
           <Button variant="secondary" onClick={() => void escalationsQuery.refetch()}>
             <Radio className="size-4" />
-            Refresh Queue
+            Refresh
           </Button>
         }
       />
@@ -114,7 +114,7 @@ export default function Escalations() {
               </CardHeader>
               <CardContent>
                 <div className="rounded-lg border border-zinc-800 bg-zinc-950/45 p-3 text-sm leading-6 text-zinc-300">
-                  <div><span className="text-zinc-500">ORB escalation reason: </span>{item.orb_stop_reason}</div>
+                  <div><span className="text-zinc-500">Reason: </span>{item.orb_stop_reason}</div>
                   {item.sla_due_at ? <div><span className="text-zinc-500">Response target: </span>{formatDate(item.sla_due_at)}</div> : null}
                   {item.owner ? <div><span className="text-zinc-500">Owner: </span>{item.owner}</div> : null}
                 </div>
@@ -133,7 +133,7 @@ export default function Escalations() {
                 <div className="mt-4 flex flex-wrap justify-end gap-2">
                   {item.continuation_ref ? (
                     <Button variant="secondary" onClick={() => window.open(String(item.continuation_ref), '_blank', 'noopener,noreferrer')}>
-                      <ExternalLink className="size-4" />Continue Relay
+                      <ExternalLink className="size-4" />Continue
                     </Button>
                   ) : null}
                   {item.state === 'created' || item.state === 'notified' ? (
@@ -143,29 +143,29 @@ export default function Escalations() {
                   ) : null}
                   {item.state === 'acknowledged' ? (
                     <Button variant="primary" onClick={() => transition.mutate({ escalationId: item.escalation_id, state: 'owned' })}>
-                      <UserCheck className="size-4" />Assume Command
+                      <UserCheck className="size-4" />Take Ownership
                     </Button>
                   ) : null}
                   {item.state === 'owned' || item.state === 'acknowledged' ? (
                     <Button variant="primary" onClick={() => transition.mutate({ escalationId: item.escalation_id, state: 'resolved' })}>
-                      <CheckCircle2 className="size-4" />Close Escalation
+                      <CheckCircle2 className="size-4" />Resolve
                     </Button>
                   ) : null}
                 </div>
               </CardContent>
             </Card>
           )) : (
-            <Card><CardContent><EmptyState title="No open escalations" detail="ORB and channel escalations will appear here with dossier context and continuation state." /></CardContent></Card>
+            <Card><CardContent><EmptyState title="No open escalations" detail="Items requiring human attention will appear here with relevant dossier context and continuation state." /></CardContent></Card>
           )}
         </div>
 
         <Card className="h-fit">
-          <CardHeader><CardTitle>Escalation Doctrine</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Escalation Rules</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-3 text-sm leading-6 text-zinc-400">
               <p>Permission boundaries, explicit human requests, security signals, billing or money issues, low-confidence safety answers, and repeated ORB failure can create deterministic escalations.</p>
-              <p>The original relay stays attached through the continuation reference so the subject does not have to start over.</p>
-              <p>SMS, Messenger, and iPhone delivery remain connector-dependent; the escalation record and command workflow are local and operational now.</p>
+              <p>The originating interaction remains attached through its continuation reference so context is not lost.</p>
+              <p>Additional channels remain connector-dependent; the escalation record and ownership workflow are local and operational.</p>
             </div>
           </CardContent>
         </Card>
