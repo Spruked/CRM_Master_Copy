@@ -12,23 +12,23 @@ router = APIRouter(prefix="/cali/intelligence/dossiers/templates", tags=["cali-d
 
 CSV_TEMPLATE_FIELDS = [
     "Name",
-    "Type",
+    "Relationship Type",
     "Email",
     "Email 2",
     "Phone",
     "Phone 2",
     "Address",
-    "Company",
-    "Job Title",
+    "Organization",
+    "Role or Job Title",
     "Notes",
     "Priority",
-    "CRM Stage",
-    "Lead Source",
+    "Lifecycle ID",
+    "Source",
     "Owner",
     "Next Follow Up At",
-    "VIV Business Scope",
+    "VIV Business Context",
     "VIV Relationship",
-    "Segment Tags",
+    "Group or Segment",
 ]
 
 
@@ -82,7 +82,7 @@ def template_schema(_: str = Depends(verify_admin)) -> Dict[str, object]:
             "X-VIV-RELATIONSHIP",
             "X-VIV-SEGMENT",
         ],
-        "lifecycle_backend_ids": {
+        "lifecycle_ids": {
             "prospect": "Horizon",
             "qualified": "Evaluating",
             "contacted": "Engaged",
@@ -91,4 +91,8 @@ def template_schema(_: str = Depends(verify_admin)) -> Dict[str, object]:
             "won": "Established",
             "lost": "Archive",
         },
+        "notes": [
+            "Lifecycle ID is the stable transport value; the VIV interface displays the corresponding lifecycle label.",
+            "Messages remain communications. Signal is reserved for information promoted as relevant intelligence.",
+        ],
     }
