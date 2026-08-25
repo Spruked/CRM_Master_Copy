@@ -108,7 +108,8 @@ export default function Activities() {
               <option value="call">Call</option>
               <option value="meeting">Meeting</option>
               <option value="follow_up">Follow-up</option>
-              <option value="email">Email Signal</option>
+              <option value="email">Email Message</option>
+              <option value="signal">Signal</option>
             </Select>
             <Textarea value={summary} onChange={(event) => setSummary(event.target.value)} placeholder="What happened, changed, or became relevant?" />
             <Button variant="primary" disabled={!activeContactId || !summary.trim() || createActivity.isPending} onClick={() => createActivity.mutate()}>
