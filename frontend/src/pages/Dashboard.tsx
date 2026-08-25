@@ -49,7 +49,7 @@ export default function Dashboard() {
   const crmApiStatus = health.data?.status || (!status.isError ? 'ok' : 'unknown')
   const bridgeStatus = externalEmail?.status || (externalEmail?.enabled ? 'degraded' : 'disabled')
   const bridgeBadge = bridgeStatus === 'online' ? 'success' : 'warning'
-  const bridgeDetail = externalEmail?.detail || externalEmail?.api_base || 'VIV signal node'
+  const bridgeDetail = externalEmail?.detail || externalEmail?.api_base || 'VIV communications bridge'
 
   useEffect(() => {
     if (!pipeline) return
@@ -65,17 +65,17 @@ export default function Dashboard() {
 
   return (
     <div>
-      <SectionHeader title="Command Center" detail="Local intelligence view across dossiers, signals, bridges, and operation state." />
+      <SectionHeader title="Command Center" detail="Your current intelligence picture across dossiers, communications, signals, events, and operations." />
 
       <div className="grid gap-4 lg:grid-cols-4">
         {health.isLoading ? (
           Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-36" />)
         ) : (
           <>
-            <StatCard title="Command Node" value={crmApiStatus} detail={health.data?.service || 'protected local API'} icon={Server} />
-            <StatCard title="Active Subjects" value={pipeline?.total ?? 0} detail="dossiers under operation" icon={Users} />
-            <StatCard title="Signal Bridge" value={bridgeStatus} detail={bridgeDetail} icon={Mail} />
-            <StatCard title="Relay Connector" value={connector?.status || 'unknown'} detail="signal handoff bridge" icon={Activity} />
+            <StatCard title="VIV Core" value={crmApiStatus} detail={health.data?.service || 'protected local intelligence API'} icon={Server} />
+            <StatCard title="Active Dossiers" value={pipeline?.total ?? 0} detail="subjects currently in operational scope" icon={Users} />
+            <StatCard title="Communications Bridge" value={bridgeStatus} detail={bridgeDetail} icon={Mail} />
+            <StatCard title="Connection Mediator" value={connector?.status || 'unknown'} detail="identity and communication handoff" icon={Activity} />
           </>
         )}
       </div>
@@ -83,8 +83,8 @@ export default function Dashboard() {
       <div className="mt-5 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <Card>
           <CardHeader>
-            <CardTitle>Operation Snapshot</CardTitle>
-            <CardDescription>Subject distribution by deterministic escalation state.</CardDescription>
+            <CardTitle>Operational Snapshot</CardTitle>
+            <CardDescription>Current dossier distribution across the existing workflow states.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -101,25 +101,25 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Bridge Manifest</CardTitle>
-            <CardDescription>Protected nodes and relay links expected by the terminal.</CardDescription>
+            <CardTitle>System Connections</CardTitle>
+            <CardDescription>Authorized local services and connected VIV systems.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <div className="flex items-center justify-between rounded-lg border border-zinc-800 p-3">
-              <span className="text-sm text-zinc-400">Command node</span>
+              <span className="text-sm text-zinc-400">VIV core</span>
               <Badge variant={crmApiStatus === 'ok' ? 'success' : 'warning'}>{crmApiStatus}</Badge>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-zinc-800 p-3">
-              <span className="text-sm text-zinc-400">VIV signal bridge</span>
+              <span className="text-sm text-zinc-400">Communications bridge</span>
               <Badge variant={bridgeBadge}>{bridgeStatus}</Badge>
             </div>
             {externalEmail?.detail ? (
               <div className="rounded-lg border border-zinc-800 p-3 text-xs text-zinc-500">
-                Signal bridge detail: {externalEmail.detail}
+                Communications detail: {externalEmail.detail}
               </div>
             ) : null}
             <div className="flex items-center justify-between rounded-lg border border-zinc-800 p-3">
-              <span className="text-sm text-zinc-400">Cipher</span>
+              <span className="text-sm text-zinc-400">Access control</span>
               <Badge variant={status.isError ? 'warning' : 'success'}>{status.isError ? 'check token' : 'accepted'}</Badge>
             </div>
           </CardContent>
