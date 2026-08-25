@@ -25,9 +25,46 @@ function detectCsvSource(content: string): CsvSource {
   return 'generic'
 }
 
+function mapCsvHeader(content: string, replacements: Array<[string, string]>) {
+  const text = String(content || '')
+  const match = text.match(/^([^\r\n]*)(\r?\n|$)/)
+  if (!match) return text
+  let header = match[1]
+  for (const [from, to] of replacements) header = header.replaceAll(from, to)
+  return header + match[2] + text.slice(match[0].length)
+}
+
 function isVivCsv(content: string) {
   const header = String(content || '').split(/\r?\n/, 1)[0]?.toLowerCase() || ''
-  return header.includes('viv business scope') || header.includes('viv relationship') || header.includes('segment tags')
+  return (
+    header.includes('viv business scope') ||
+    header.includes('viv business context') ||
+    header.includes('viv relationship') ||
+    header.includes('segment tags') ||
+    header.includes('group or segment') ||
+    header.includes('lifecycle id')
+  )
+}
+
+function normalizeVivCsv(content: string) {
+  return mapCsvHeader(content, [
+    ['Relationship Type', 'Type'],
+    ['Role or Job Title', 'Job Title'],
+    ['Lifecycle ID', 'CRM Stage'],
+    ['VIV Business Context', 'VIV Business Scope'],
+    ['Group or Segment', 'Segment Tags'],
+  ])
+}
+
+function presentVivCsv(content: string) {
+  return mapCsvHeader(content, [
+    ['Type', 'Relationship Type'],
+    ['CRM Stage', 'Lifecycle ID'],
+    ['Lead Source', 'Source'],
+    ['Business Scope', 'VIV Business Context'],
+    ['Relationship', 'VIV Relationship'],
+    ['Segment Tags', 'Group or Segment'],
+  ])
 }
 
 function normalizeVivVcard(content: string) {
@@ -90,7 +127,7 @@ export function ContactIOControls() {
 
         if (source === 'generic' && isVivCsv(content)) {
           const response = await api.post('/cali/intelligence/csv/import', {
-            content,
+            content: normalizeVivCsv(content),
             business_scope: targetScope,
             run_relationship_scan: false,
           })
@@ -161,6 +198,8 @@ export function ContactIOControls() {
       let blob = response.data as Blob
       if (format === 'vcf') {
         blob = new Blob([presentVivVcard(await blob.text())], { type: 'text/vcard; charset=utf-8' })
+      } else {
+        blob = new Blob([presentVivCsv(await blob.text())], { type: 'text/csv; charset=utf-8' })
       }
       const scope = businessScope === 'all' ? 'viv-dossiers' : `viv-${businessScope}-dossiers`
       triggerDownload(blob, `${scope}.${format}`)
