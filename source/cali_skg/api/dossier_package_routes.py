@@ -158,3 +158,44 @@ async def upload_dossier_image(
         "image_file": str(image_path),
         "media": dict(saved) if saved else None,
     }
+
+
+@router.delete("/contacts/{contact_id}/images/{media_id}")
+def delete_dossier_image(contact_id: str, media_id: str, _: str = Depends(verify_admin)) -> Dict[str, Any]:
+    _ensure_schema()
+    db_path = _db_path()
+    with sqlite3.connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        _contact_or_404(conn, contact_id)
+        row = conn.execute(
+            "SELECT media_id, source, is_primary FROM dossier_media WHERE contact_id=? AND media_id=?",
+            (contact_id, media_id),
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Dossier image not found")
+
+        source = str(row["source"] or "")
+        deleted_file = False
+        if source.startswith("dossier_package:images/"):
+            filename = Path(source.split("dossier_package:images/", 1)[1]).name
+            package = ensure_dossier_package(db_path, contact_id)
+            image_path = Path(package["package_dir"]) / "images" / filename
+            if image_path.exists() and image_path.is_file():
+                image_path.unlink()
+                deleted_file = True
+
+        was_primary = bool(row["is_primary"])
+        conn.execute("DELETE FROM dossier_media WHERE contact_id=? AND media_id=?", (contact_id, media_id))
+        if was_primary:
+            replacement = conn.execute(
+                "SELECT media_id FROM dossier_media WHERE contact_id=? ORDER BY created_at DESC LIMIT 1",
+                (contact_id,),
+            ).fetchone()
+            if replacement:
+                conn.execute(
+                    "UPDATE dossier_media SET is_primary=1, updated_at=? WHERE media_id=?",
+                    (_utc_now(), replacement["media_id"]),
+                )
+        conn.commit()
+
+    return {"deleted": True, "media_id": media_id, "file_deleted": deleted_file}
