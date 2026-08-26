@@ -4,7 +4,7 @@ import { SectionHeader } from '@/components/SectionHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty'
 import { api } from '@/lib/api'
-import { updateCRMContext } from '@/lib/orb-integration'
+import { updateVIVContext } from '@/lib/orb-integration'
 import { compactDate } from '@/lib/utils'
 
 type CalendarEvent = {
@@ -24,7 +24,7 @@ export default function Calendar() {
   })
 
   useEffect(() => {
-    updateCRMContext({
+    updateVIVContext({
       currentView: 'calendar',
       highPriorityTasks: upcoming.data?.events?.length || 0,
       lastAction: 'calendar_loaded',
