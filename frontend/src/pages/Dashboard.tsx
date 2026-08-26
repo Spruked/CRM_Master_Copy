@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { SectionHeader } from '@/components/SectionHeader'
 import { pipelineStages } from '@/hooks/usePipeline'
 import { api } from '@/lib/api'
-import { updateCRMContext } from '@/lib/orb-integration'
+import { updateVIVContext } from '@/lib/orb-integration'
 import type { UnifiedStatus } from '@/types'
 
 const lifecycleLabels = Object.fromEntries(pipelineStages.map((stage) => [stage.id, stage.label])) as Record<string, string>
@@ -42,21 +42,21 @@ export default function Dashboard() {
   })
 
   const status = useQuery({
-    queryKey: ['crm-unified-status'],
+    queryKey: ['viv-unified-status'],
     queryFn: async () => (await api.get('/cali/crm/unified/status')).data as UnifiedStatus,
   })
 
   const pipeline = status.data?.crm_pipeline
   const connector = status.data?.crm_email_connector
   const externalEmail = status.data?.external_email
-  const crmApiStatus = health.data?.status || (!status.isError ? 'ok' : 'unknown')
+  const vivApiStatus = health.data?.status || (!status.isError ? 'ok' : 'unknown')
   const bridgeStatus = externalEmail?.status || (externalEmail?.enabled ? 'degraded' : 'disabled')
   const bridgeBadge = bridgeStatus === 'online' ? 'success' : 'warning'
   const bridgeDetail = externalEmail?.detail || externalEmail?.api_base || 'VIV communications bridge'
 
   useEffect(() => {
     if (!pipeline) return
-    updateCRMContext({
+    updateVIVContext({
       currentView: 'dashboard',
       pipelineSummary: {
         total: pipeline.total,
@@ -75,7 +75,7 @@ export default function Dashboard() {
           Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-36" />)
         ) : (
           <>
-            <StatCard title="VIV Core" value={crmApiStatus} detail={health.data?.service || 'protected local intelligence API'} icon={Server} />
+            <StatCard title="VIV Core" value={vivApiStatus} detail={health.data?.service || 'protected local intelligence API'} icon={Server} />
             <StatCard title="Active Dossiers" value={pipeline?.total ?? 0} detail="subjects currently in operational scope" icon={Users} />
             <StatCard title="Communications Bridge" value={bridgeStatus} detail={bridgeDetail} icon={Mail} />
             <StatCard title="Connection Mediator" value={connector?.status || 'unknown'} detail="identity and communication handoff" icon={Activity} />
@@ -110,7 +110,7 @@ export default function Dashboard() {
           <CardContent className="flex flex-col gap-3">
             <div className="flex items-center justify-between rounded-lg border border-zinc-800 p-3">
               <span className="text-sm text-zinc-400">VIV core</span>
-              <Badge variant={crmApiStatus === 'ok' ? 'success' : 'warning'}>{crmApiStatus}</Badge>
+              <Badge variant={vivApiStatus === 'ok' ? 'success' : 'warning'}>{vivApiStatus}</Badge>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-zinc-800 p-3">
               <span className="text-sm text-zinc-400">Communications bridge</span>
