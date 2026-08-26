@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { getCRMContext, type CRMContextPayload } from '@/lib/orb-integration'
+import { getVIVContext, type VIVContextPayload } from '@/lib/orb-integration'
 
 export function ContextDebugPanel() {
-  const [context, setContext] = useState<CRMContextPayload>(() => getCRMContext())
+  const [context, setContext] = useState<VIVContextPayload>(() => getVIVContext())
 
   useEffect(() => {
     const handler = (event: Event) => {
-      const custom = event as CustomEvent<CRMContextPayload>
+      const custom = event as CustomEvent<VIVContextPayload>
       setContext(custom.detail)
     }
-    window.addEventListener('cali-crm-context-update', handler)
-    return () => window.removeEventListener('cali-crm-context-update', handler)
+    window.addEventListener('viv-context-update', handler)
+    return () => window.removeEventListener('viv-context-update', handler)
   }, [])
 
   return (
