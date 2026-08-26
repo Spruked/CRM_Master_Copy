@@ -117,6 +117,32 @@ def _state_code(address: str, jurisdiction: Optional[str]) -> str:
     return match.group(1) if match else ""
 
 
+def classify_external_link(platform: str, url: str, link_type: str) -> Dict[str, Any]:
+    """Deterministic governance classification; generated links are never findings."""
+    structured = {"sec_edgar", "patent_uspto", "trademark_uspto", "state_sos"}
+    record_type = {
+        "state_sos": "corporate", "sec_edgar": "regulatory", "court_records": "litigation",
+        "patent_uspto": "ip", "trademark_uspto": "ip", "professional_license": "licensing",
+    }.get(platform, "public_reference")
+    if platform in structured and "google.com" not in url:
+        return {"risk_level": "low", "record_type": record_type, "query_mode": "structured_registry", "confidence_score": 0.95, "requires_review": False}
+    if "google.com" in url:
+        return {"risk_level": "medium", "record_type": record_type, "query_mode": "google_proxy", "confidence_score": 0.70, "requires_review": platform in {"court_records", "associate_public"}}
+    return {"risk_level": "medium", "record_type": record_type, "query_mode": "direct", "confidence_score": 0.50, "requires_review": True}
+
+
+def _record_link_governance(conn: sqlite3.Connection, contact_id: str, platform: str, url: str, link_type: str) -> None:
+    classification = classify_external_link(platform, url, link_type)
+    now = datetime.utcnow().isoformat()
+    node_key = hashlib.sha256(f"{contact_id}|{platform}|{url}".encode("utf-8")).hexdigest()
+    conn.execute("""INSERT INTO contact_external_link_governance(node_key, contact_id, platform, url, risk_level, record_type, query_mode, confidence_score, requires_review, classifier_version, generated_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'viv-link-governor:v1', ?, ?) ON CONFLICT(node_key) DO UPDATE SET risk_level=excluded.risk_level, record_type=excluded.record_type, query_mode=excluded.query_mode, confidence_score=excluded.confidence_score, requires_review=excluded.requires_review, updated_at=excluded.updated_at""", (node_key, contact_id, platform, url, classification["risk_level"], classification["record_type"], classification["query_mode"], classification["confidence_score"], int(classification["requires_review"]), now, now))
+    previous = conn.execute("SELECT row_hash FROM audit_event ORDER BY created_at DESC LIMIT 1").fetchone()
+    prev_hash = str(previous[0]) if previous else ""
+    state = json.dumps({"node_key": node_key, **classification}, sort_keys=True)
+    row_hash = hashlib.sha256(f"{prev_hash}|{contact_id}|{state}|{now}".encode("utf-8")).hexdigest()
+    conn.execute("INSERT INTO audit_event(audit_id, actor, action, target_ids, new_state, reason, prev_hash, row_hash, created_at) VALUES (?, 'viv_link_governor', 'classify_external_link', ?, ?, 'public_record_only', ?, ?, ?)", (f"audit:link:{node_key}:{row_hash[:12]}", json.dumps([contact_id]), state, prev_hash or None, row_hash, now))
+
+
 
 
 def _kaygee_api_base() -> str:
@@ -1061,6 +1087,7 @@ def generate_external_links(
     _: str = Depends(verify_admin),
 ) -> Dict[str, Any]:
     payload = payload or GenerateExternalLinksRequest()
+    run_unified_migration(_crm_db_path())
     now = datetime.utcnow().isoformat()
     with sqlite3.connect(_crm_db_path()) as conn:
         conn.row_factory = sqlite3.Row
@@ -1188,6 +1215,7 @@ def generate_external_links(
             )
             if cur.rowcount > 0:
                 inserted_count += 1
+            _record_link_governance(conn, resolved_id, platform, url, link_type)
 
         conn.commit()
     return {"status": "success", "generated_links": len(generated), "new_links_written": inserted_count}
@@ -1206,6 +1234,7 @@ def expand_dossier(
     paths are references, not claims or fetched public-record content.
     """
     payload = payload or DossierExpandRequest()
+    run_unified_migration(_crm_db_path())
     base = generate_external_links(
         contact_id,
         GenerateExternalLinksRequest(aliases=payload.aliases, jurisdiction=payload.jurisdiction),
@@ -1252,6 +1281,7 @@ def expand_dossier(
             generated += 1
             cur.execute("""INSERT OR IGNORE INTO contact_external_links (contact_id, platform, label, url, link_type, verified_status, source, confidence_score, last_checked_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'generated_search', 'dossier_expander:v1', 0.3, ?, ?, ?)""", (resolved_id, platform, label, url, link_type, now, now, now))
             inserted += max(0, cur.rowcount)
+            _record_link_governance(conn, resolved_id, platform, url, link_type)
         conn.commit()
     return {"status": "success", "contact_id": resolved_id, "generated_links": generated, "new_links_written": inserted, "deduplicated": generated - inserted, "public_images_referenced": sum(1 for item in extra if item[3] == "public_image")}
 

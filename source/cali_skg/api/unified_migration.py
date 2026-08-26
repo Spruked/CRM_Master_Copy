@@ -179,6 +179,26 @@ def run_unified_migration(db_path: str) -> Dict[str, Any]:
         if "contact_external_links" in tables:
             cur.execute("CREATE INDEX IF NOT EXISTS idx_external_links_contact ON contact_external_links(contact_id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_external_links_platform ON contact_external_links(platform)")
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS contact_external_link_governance (
+                  node_key TEXT PRIMARY KEY,
+                  contact_id TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+                  platform TEXT NOT NULL,
+                  url TEXT NOT NULL,
+                  risk_level TEXT NOT NULL,
+                  record_type TEXT NOT NULL,
+                  query_mode TEXT NOT NULL,
+                  confidence_score REAL NOT NULL,
+                  requires_review INTEGER NOT NULL DEFAULT 0,
+                  classifier_version TEXT NOT NULL,
+                  generated_at TEXT NOT NULL,
+                  updated_at TEXT NOT NULL,
+                  UNIQUE(contact_id, platform, url)
+                )
+                """
+            )
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_external_link_governance_contact ON contact_external_link_governance(contact_id, risk_level)")
         if "emails" in tables:
             cur.execute("CREATE INDEX IF NOT EXISTS idx_emails_thread ON emails(thread_id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_emails_sender ON emails(sender)")
