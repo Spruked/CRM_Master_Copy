@@ -18,9 +18,9 @@ $root = Split-Path -Parent $PSScriptRoot
 $backendScript = Join-Path $root 'start_crm_backend_wsl.ps1'
 $frontendScript = Join-Path $root 'start_crm_frontend.ps1'
 $iconPath = Join-Path $root 'frontend\public\VIVLOGO.png'
-$logDir = Join-Path $env:LOCALAPPDATA 'CALI_CRM'
+$logDir = Join-Path $env:LOCALAPPDATA 'VIV'
 $logFile = Join-Path $logDir 'tray.log'
-$crmUri = 'http://127.0.0.1:21010'
+$vivUri = 'http://127.0.0.1:21010'
 
 New-Item -ItemType Directory -Path $logDir -Force | Out-Null
 
@@ -54,12 +54,12 @@ $createdNew = $false
 $mutex = New-Object System.Threading.Mutex($true, 'Local\CaliCrmTraySupervisor', [ref]$createdNew)
 if (-not $createdNew) {
   if (-not $Startup) {
-    try { Start-Process $crmUri | Out-Null } catch {}
+    try { Start-Process $vivUri | Out-Null } catch {}
   }
   exit 0
 }
 
-function Test-CrmPort([int]$Port) {
+function Test-VivPort([int]$Port) {
   try {
     return [bool](Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction Stop | Select-Object -First 1)
   } catch {
@@ -67,39 +67,39 @@ function Test-CrmPort([int]$Port) {
   }
 }
 
-function Start-CrmBackend {
-  if (Test-CrmPort 21000) { return }
+function Start-VivBackend {
+  if (Test-VivPort 21000) { return }
   if (-not (Test-Path -LiteralPath $backendScript)) {
-    Write-TrayLog "CRM backend launcher missing: $backendScript"
+    Write-TrayLog "VIV backend launcher missing: $backendScript"
     return
   }
-  Write-TrayLog 'Starting VIV CRM backend.'
+  Write-TrayLog 'Starting VIV backend.'
   Start-Process -FilePath 'powershell.exe' `
     -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f $backendScript)) `
     -WorkingDirectory $root `
     -WindowStyle Hidden | Out-Null
 }
 
-function Start-CrmFrontend {
-  if (Test-CrmPort 21010) { return }
+function Start-VivFrontend {
+  if (Test-VivPort 21010) { return }
   if (-not (Test-Path -LiteralPath $frontendScript)) {
-    Write-TrayLog "CRM frontend launcher missing: $frontendScript"
+    Write-TrayLog "VIV frontend launcher missing: $frontendScript"
     return
   }
-  Write-TrayLog 'Starting VIV CRM frontend.'
+  Write-TrayLog 'Starting VIV frontend.'
   Start-Process -FilePath 'powershell.exe' `
     -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f $frontendScript)) `
     -WorkingDirectory $root `
     -WindowStyle Hidden | Out-Null
 }
 
-function Ensure-CrmServices {
-  Start-CrmBackend
-  Start-CrmFrontend
+function Ensure-VivServices {
+  Start-VivBackend
+  Start-VivFrontend
 }
 
-function Open-Crm {
-  try { Start-Process $crmUri | Out-Null } catch { Write-TrayLog "Open browser failed: $($_.Exception.Message)" }
+function Open-Viv {
+  try { Start-Process $vivUri | Out-Null } catch { Write-TrayLog "Open browser failed: $($_.Exception.Message)" }
 }
 
 [System.Windows.Forms.Application]::EnableVisualStyles()
@@ -110,7 +110,7 @@ if ($trayIcon) {
 } else {
   $notify.Icon = [System.Drawing.SystemIcons]::Information
 }
-$notify.Text = 'VIV CRM'
+$notify.Text = 'VIV'
 $notify.Visible = $true
 
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
@@ -118,12 +118,12 @@ $statusItem = New-Object System.Windows.Forms.ToolStripMenuItem
 $statusItem.Enabled = $false
 [void]$menu.Items.Add($statusItem)
 
-$openItem = New-Object System.Windows.Forms.ToolStripMenuItem('Open VIV CRM')
-$openItem.Add_Click({ Open-Crm })
+$openItem = New-Object System.Windows.Forms.ToolStripMenuItem('Open VIV')
+$openItem.Add_Click({ Open-Viv })
 [void]$menu.Items.Add($openItem)
 
-$ensureItem = New-Object System.Windows.Forms.ToolStripMenuItem('Ensure services running')
-$ensureItem.Add_Click({ Ensure-CrmServices })
+$ensureItem = New-Object System.Windows.Forms.ToolStripMenuItem('Ensure VIV services running')
+$ensureItem.Add_Click({ Ensure-VivServices })
 [void]$menu.Items.Add($ensureItem)
 
 $logsItem = New-Object System.Windows.Forms.ToolStripMenuItem('Open startup log')
@@ -133,7 +133,7 @@ $logsItem.Add_Click({
 [void]$menu.Items.Add($logsItem)
 
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
-$exitItem = New-Object System.Windows.Forms.ToolStripMenuItem('Exit tray')
+$exitItem = New-Object System.Windows.Forms.ToolStripMenuItem('Exit VIV tray')
 $exitItem.Add_Click({
   $notify.Visible = $false
   [System.Windows.Forms.Application]::Exit()
@@ -141,20 +141,20 @@ $exitItem.Add_Click({
 [void]$menu.Items.Add($exitItem)
 
 $notify.ContextMenuStrip = $menu
-$notify.Add_DoubleClick({ Open-Crm })
+$notify.Add_DoubleClick({ Open-Viv })
 
 function Update-Status {
-  $backendReady = Test-CrmPort 21000
-  $frontendReady = Test-CrmPort 21010
+  $backendReady = Test-VivPort 21000
+  $frontendReady = Test-VivPort 21010
   if ($backendReady -and $frontendReady) {
-    $statusItem.Text = 'Status: CRM running'
-    $notify.Text = 'VIV CRM - running'
+    $statusItem.Text = 'Status: VIV running'
+    $notify.Text = 'VIV - running'
   } elseif ($backendReady -or $frontendReady) {
-    $statusItem.Text = 'Status: CRM partially running'
-    $notify.Text = 'VIV CRM - partial'
+    $statusItem.Text = 'Status: VIV partially running'
+    $notify.Text = 'VIV - partial'
   } else {
-    $statusItem.Text = 'Status: CRM stopped'
-    $notify.Text = 'VIV CRM - stopped'
+    $statusItem.Text = 'Status: VIV stopped'
+    $notify.Text = 'VIV - stopped'
   }
 }
 
@@ -163,10 +163,10 @@ $timer.Interval = 5000
 $timer.Add_Tick({ Update-Status })
 
 try {
-  Ensure-CrmServices
+  Ensure-VivServices
   Update-Status
   $timer.Start()
-  Write-TrayLog "Tray supervisor active. Startup=$Startup"
+  Write-TrayLog "VIV tray supervisor active. Startup=$Startup"
   [System.Windows.Forms.Application]::Run()
 } finally {
   try { $timer.Stop(); $timer.Dispose() } catch {}
