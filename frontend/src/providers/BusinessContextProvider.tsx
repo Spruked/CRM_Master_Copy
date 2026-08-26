@@ -22,8 +22,13 @@ const STORAGE_KEY = 'viv_business_scope'
 const LEGACY_STORAGE_KEY = 'cali_business_scope'
 const BusinessContext = createContext<BusinessContextValue | null>(null)
 
+function initialBusinessScope() {
+  const fromUrl = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('business_scope')?.trim() : ''
+  return fromUrl || localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY) || 'all'
+}
+
 export function BusinessContextProvider({ children }: { children: ReactNode }) {
-  const [businessScope, setBusinessScopeState] = useState(() => localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY) || 'all')
+  const [businessScope, setBusinessScopeState] = useState(initialBusinessScope)
 
   const businessesQuery = useQuery({
     queryKey: ['business-contexts'],
@@ -48,6 +53,8 @@ export function BusinessContextProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, businessScope)
+    localStorage.setItem(LEGACY_STORAGE_KEY, businessScope)
     updateVIVContext({
       activeFilters: {
         businessScope,
