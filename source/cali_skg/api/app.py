@@ -5,6 +5,7 @@ from cali_skg.api.communication_routes import router as communication_router
 from cali_skg.api.contact_io_routes import router as contact_io_router
 from cali_skg.api.csv_contact_io_routes import router as csv_contact_io_router
 from cali_skg.api.dossier_backfill_routes import router as dossier_backfill_router
+from cali_skg.api.dossier_automation_routes import router as dossier_automation_router
 from cali_skg.api.dossier_package_routes import router as dossier_package_router
 from cali_skg.api.dossier_template_routes import router as dossier_template_router
 from cali_skg.api.identity_operations_routes import router as identity_operations_router
@@ -29,6 +30,7 @@ app.include_router(communication_router)
 app.include_router(contact_io_router)
 app.include_router(csv_contact_io_router)
 app.include_router(dossier_backfill_router)
+app.include_router(dossier_automation_router)
 app.include_router(dossier_package_router)
 app.include_router(dossier_template_router)
 app.include_router(operations_router)

@@ -7,6 +7,7 @@ import os
 import re
 import sqlite3
 import threading
+import unicodedata
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from urllib.parse import quote_plus
@@ -15,7 +16,7 @@ import httpx
 from fastapi import APIRouter, Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from cali_skg.core.cali_personal_skg import get_cali_skg
 from cali_skg.api.unified_migration import run_unified_migration
@@ -85,6 +86,35 @@ def _extract_domain(email: Optional[str]) -> Optional[str]:
     if not domain or domain in common_providers:
         return None
     return domain
+
+
+_SOS_PORTALS = {
+    "CA": "https://bizfileonline.sos.ca.gov/search/business",
+    "DE": "https://icis.corp.delaware.gov/ecorp/entitysearch/namesearch.aspx",
+    "FL": "https://search.sunbiz.org/Inquiry/CorporationSearch/ByName",
+    "NY": "https://apps.dos.ny.gov/publicInquiry/",
+    "TX": "https://mycpa.cpa.state.tx.us/coa/",
+}
+
+
+def _normalized_name(value: str) -> str:
+    text = unicodedata.normalize("NFKC", str(value or "")).strip()
+    text = re.sub(r"\b(?:mr|mrs|ms|dr|prof)\.?\s+", "", text, flags=re.I)
+    text = re.sub(r"\s+", " ", text)
+    return text
+
+
+def _name_variants(primary: str, aliases: List[str]) -> List[str]:
+    values = [_normalized_name(primary), *[_normalized_name(alias) for alias in aliases]]
+    return list(dict.fromkeys(value for value in values if value))
+
+
+def _state_code(address: str, jurisdiction: Optional[str]) -> str:
+    candidate = str(jurisdiction or "").strip().upper()
+    if candidate in _SOS_PORTALS:
+        return candidate
+    match = re.search(r"\b([A-Z]{2})\s+\d{5}(?:-\d{4})?\b", str(address or "").upper())
+    return match.group(1) if match else ""
 
 
 
@@ -734,6 +764,22 @@ class UpdateExternalLink(BaseModel):
     verified_status: Optional[str] = None
 
 
+class GenerateExternalLinksRequest(BaseModel):
+    aliases: List[str] = []
+    jurisdiction: Optional[str] = None
+    include_courts: bool = True
+    include_ip: bool = True
+
+
+class DossierExpandRequest(BaseModel):
+    aliases: List[str] = Field(default_factory=list)
+    extra_phones: List[str] = Field(default_factory=list)
+    extra_addresses: List[str] = Field(default_factory=list)
+    include_associates: bool = True
+    include_images: bool = True
+    jurisdiction: Optional[str] = None
+
+
 class CRMAppointmentCreate(BaseModel):
     contact_id: str
     title: str
@@ -1008,22 +1054,38 @@ def add_external_link(contact_id: str, payload: CreateExternalLink, _: str = Dep
 
 
 @router.post("/contacts/{contact_id}/external-links/generate")
-def generate_external_links(contact_id: str, _: str = Depends(verify_admin)) -> Dict[str, Any]:
+def generate_external_links(
+    contact_id: str,
+    payload: Optional[GenerateExternalLinksRequest] = None,
+    dry_run: bool = False,
+    _: str = Depends(verify_admin),
+) -> Dict[str, Any]:
+    payload = payload or GenerateExternalLinksRequest()
     now = datetime.utcnow().isoformat()
     with sqlite3.connect(_crm_db_path()) as conn:
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
-        cur.execute("SELECT id, name, email, address FROM contacts WHERE id = ? OR hash_id = ?", (contact_id, contact_id))
+        cur.execute(
+            "SELECT id, name, email, address, company_role, organization_id, alias_names FROM contacts WHERE id = ? OR hash_id = ?",
+            (contact_id, contact_id),
+        )
         contact = cur.fetchone()
         if not contact:
             raise HTTPException(status_code=404, detail="Target contact dossier not found")
 
         resolved_id = str(contact["id"])
-        name = str(contact["name"] or "").strip()
+        name = _normalized_name(str(contact["name"] or ""))
         email = str(contact["email"] or "").strip()
         address = str(contact["address"] or "").strip()
+        organization = str(contact["organization_id"] or contact["company_role"] or "").strip()
 
-        if not name:
+        aliases = list(payload.aliases)
+        try:
+            aliases.extend(json.loads(str(contact["alias_names"] or "[]")))
+        except (TypeError, json.JSONDecodeError):
+            pass
+        names = _name_variants(name, [str(alias) for alias in aliases])
+        if not names:
             raise HTTPException(status_code=400, detail="Cannot generate deterministic paths without a contact name token")
 
         encoded_name = quote_plus(name)
@@ -1054,6 +1116,64 @@ def generate_external_links(contact_id: str, _: str = Depends(verify_admin)) -> 
             generated.append(("domain_lookup", "Domain Intelligence", f"https://who.is/whois/{domain}", "direct_profile"))
             generated.append(("company_website", "Corporate Domain", f"https://{domain}", "direct_profile"))
 
+        # These are public-record search paths, not assertions about the subject.
+        # The unique contact/platform/url constraint preserves deterministic
+        # deduplication across repeated daily dossier runs.
+        legal_subject = organization or name
+        encoded_legal_subject = quote_plus(f'"{legal_subject}"')
+        encoded_exact_name = quote_plus(f'"{name}"')
+        encoded_location = quote_plus(address or "United States")
+        generated.extend(
+            [
+                (
+                    "state_sos",
+                    f"Secretary of State Search: {legal_subject}",
+                    f"https://www.google.com/search?q=site%3A.gov+%22secretary+of+state%22+{encoded_legal_subject}",
+                    "corporate_registry",
+                ),
+                (
+                    "sec_edgar",
+                    f"SEC EDGAR Search: {legal_subject}",
+                    f"https://www.sec.gov/edgar/search/#/q={encoded_legal_subject}",
+                    "regulatory_filing",
+                ),
+                (
+                    "court_records",
+                    f"Public Docket Search: {name}",
+                    f"https://www.google.com/search?q={encoded_exact_name}+%28court+OR+docket+OR+litigation+OR+plaintiff+OR+defendant%29",
+                    "legal_docket",
+                ),
+                (
+                    "patent_uspto",
+                    f"Patent Search: {name}",
+                    f"https://patents.google.com/?inventor={quote_plus(name)}",
+                    "intellectual_property",
+                ),
+                (
+                    "professional_license",
+                    f"Professional License Search: {name}",
+                    f"https://www.google.com/search?q={encoded_exact_name}+%28license+OR+board+OR+registry+OR+certification%29+{encoded_location}",
+                    "licensing_check",
+                ),
+            ]
+        )
+
+        state = _state_code(address, payload.jurisdiction)
+        if state in _SOS_PORTALS:
+            generated.append(("state_sos", f"{state} Secretary of State: {legal_subject}", _SOS_PORTALS[state], "corporate_registry"))
+        for alias in names[1:]:
+            encoded_alias = quote_plus(f'"{alias}"')
+            generated.append(("google_search", f"Google Search: {alias}", f"https://www.google.com/search?q={encoded_alias}", "alias_search"))
+            if payload.include_courts:
+                generated.append(("court_records", f"Public Docket Search: {alias}", f"https://www.google.com/search?q={encoded_alias}+%28court+OR+docket+OR+litigation%29", "legal_docket"))
+
+        if not payload.include_courts:
+            generated = [node for node in generated if node[0] != "court_records"]
+        if not payload.include_ip:
+            generated = [node for node in generated if node[0] != "patent_uspto"]
+        if dry_run:
+            return {"status": "dry_run", "contact_id": resolved_id, "generated_links": len(generated), "nodes": [dict(platform=p, label=l, url=u, link_type=t) for p, l, u, t in generated]}
+
         inserted_count = 0
         for platform, label, url, link_type in generated:
             cur.execute(
@@ -1062,7 +1182,7 @@ def generate_external_links(contact_id: str, _: str = Depends(verify_admin)) -> 
                     contact_id, platform, label, url, link_type, verified_status, source,
                     confidence_score, last_checked_at, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, 'generated_search', 'deterministic_generator', 0.3, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, 'generated_search', 'deterministic_generator:v2', 0.3, ?, ?, ?)
                 """,
                 (resolved_id, platform, label, url, link_type, now, now, now),
             )
@@ -1071,6 +1191,69 @@ def generate_external_links(contact_id: str, _: str = Depends(verify_admin)) -> 
 
         conn.commit()
     return {"status": "success", "generated_links": len(generated), "new_links_written": inserted_count}
+
+
+@router.post("/contacts/{contact_id}/dossier/expand")
+def expand_dossier(
+    contact_id: str,
+    payload: Optional[DossierExpandRequest] = None,
+    dry_run: bool = False,
+    _: str = Depends(verify_admin),
+) -> Dict[str, Any]:
+    """Add deterministic public-record paths from the current VIV dossier.
+
+    Associates come only from accepted/verified local relationship edges. Search
+    paths are references, not claims or fetched public-record content.
+    """
+    payload = payload or DossierExpandRequest()
+    base = generate_external_links(
+        contact_id,
+        GenerateExternalLinksRequest(aliases=payload.aliases, jurisdiction=payload.jurisdiction),
+        dry_run,
+        "owner",
+    )
+    if dry_run:
+        return {**base, "expansion": "dry_run"}
+
+    now = datetime.utcnow().isoformat()
+    inserted = int(base.get("new_links_written") or 0)
+    generated = int(base.get("generated_links") or 0)
+    with sqlite3.connect(_crm_db_path()) as conn:
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        contact = cur.execute("SELECT id, name, phone, address FROM contacts WHERE id=? OR hash_id=?", (contact_id, contact_id)).fetchone()
+        if not contact:
+            raise HTTPException(status_code=404, detail="Target contact dossier not found")
+        resolved_id, name = str(contact["id"]), _normalized_name(str(contact["name"] or ""))
+        phones = list(dict.fromkeys([str(contact["phone"] or ""), *payload.extra_phones]))
+        addresses = list(dict.fromkeys([str(contact["address"] or ""), *payload.extra_addresses]))
+        extra: List[tuple[str, str, str, str]] = []
+        for phone in (value for value in phones if value.strip()):
+            digits = "".join(ch for ch in phone if ch.isdigit())
+            if digits:
+                extra.append(("phone_public", f"Public directory search: {phone}", f"https://www.google.com/search?q={quote_plus(phone)}+%28%22reverse+lookup%22+OR+%22public+records%22%29", "phone_directory"))
+        for address in (value for value in addresses if value.strip()):
+            extra.append(("property_records", f"Property / assessor search: {address}", f"https://www.google.com/search?q={quote_plus('"' + address + '"')}+%28assessor+OR+property+OR+deed+OR+recorder%29+site%3A.gov", "property_record"))
+        if payload.include_images and name:
+            extra.append(("public_images", f"Public image search: {name}", f"https://www.google.com/search?tbm=isch&q={quote_plus('"' + name + '"')}+%28site%3A.gov+OR+site%3Asec.gov+OR+site%3Auspto.gov%29", "public_image"))
+        if payload.include_associates:
+            party_id = f"legacy-contact:{resolved_id}"
+            rows = cur.execute(
+                """SELECT c.name, e.predicate FROM relationship_edge e
+                   JOIN contacts c ON ('legacy-contact:' || c.id)=CASE WHEN e.from_party=? THEN e.to_party ELSE e.from_party END
+                   WHERE (e.from_party=? OR e.to_party=?) AND e.state IN ('asserted','verified') AND e.valid_to IS NULL""",
+                (party_id, party_id, party_id),
+            ).fetchall()
+            for row in rows:
+                associate, relation = _normalized_name(str(row["name"] or "")), str(row["predicate"] or "associate")
+                if associate:
+                    extra.append(("associate_public", f"Associate public-record search: {associate} ({relation})", f"https://www.google.com/search?q={quote_plus('"' + associate + '"')}+%28court+OR+docket+OR+officer+OR+director%29+site%3A.gov", "associate_public_record"))
+        for platform, label, url, link_type in extra:
+            generated += 1
+            cur.execute("""INSERT OR IGNORE INTO contact_external_links (contact_id, platform, label, url, link_type, verified_status, source, confidence_score, last_checked_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'generated_search', 'dossier_expander:v1', 0.3, ?, ?, ?)""", (resolved_id, platform, label, url, link_type, now, now, now))
+            inserted += max(0, cur.rowcount)
+        conn.commit()
+    return {"status": "success", "contact_id": resolved_id, "generated_links": generated, "new_links_written": inserted, "deduplicated": generated - inserted, "public_images_referenced": sum(1 for item in extra if item[3] == "public_image")}
 
 
 @router.patch("/contacts/{contact_id}/external-links/{link_id}", response_model=ExternalLinkSchema)

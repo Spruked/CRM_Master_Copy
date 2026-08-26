@@ -197,6 +197,37 @@ def run_unified_migration(db_path: str) -> Dict[str, Any]:
         # records so the UI can migrate without a destructive cutover.
         apply_relationship_intelligence_schema(conn, steps)
 
+        # Durable local-first automation runs. Evidence stays in the existing
+        # evidence/audit substrate; these tables only retain resumable job state.
+        cur.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS dossier_sweep_run (
+              run_id TEXT PRIMARY KEY,
+              business_scope TEXT NOT NULL,
+              max_entities INTEGER NOT NULL,
+              status TEXT NOT NULL,
+              started_at TEXT NOT NULL,
+              completed_at TEXT,
+              contacts_seen INTEGER NOT NULL DEFAULT 0,
+              contacts_processed INTEGER NOT NULL DEFAULT 0,
+              evidence_written INTEGER NOT NULL DEFAULT 0,
+              error_summary TEXT
+            );
+            CREATE TABLE IF NOT EXISTS dossier_sweep_item (
+              run_id TEXT NOT NULL REFERENCES dossier_sweep_run(run_id) ON DELETE CASCADE,
+              contact_id TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+              content_hash TEXT NOT NULL,
+              status TEXT NOT NULL,
+              detail TEXT,
+              processed_at TEXT NOT NULL,
+              PRIMARY KEY (run_id, contact_id)
+            );
+            CREATE INDEX IF NOT EXISTS ix_dossier_sweep_run_status ON dossier_sweep_run(status, started_at DESC);
+            CREATE INDEX IF NOT EXISTS ix_dossier_sweep_item_hash ON dossier_sweep_item(contact_id, content_hash);
+            """
+        )
+        steps.append("Ensured dossier sweep automation tables")
+
         conn.commit()
 
     return {"status": "success", "db_path": db_path, "steps": steps}

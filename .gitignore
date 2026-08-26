@@ -14,6 +14,7 @@ __pycache__/
 .ruff_cache/
 .venv/
 venv/
+venv_py314_bad/
 
 # Node
 node_modules/
@@ -47,6 +48,7 @@ crm-wsl.err.log
 _tmp_*
 *.tmp
 *.bak
+structure_tree.txt
 
 # Build/dist/cache
 dist/

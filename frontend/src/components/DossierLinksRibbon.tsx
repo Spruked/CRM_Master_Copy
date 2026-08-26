@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ExternalLink, Globe, Link2, MapPin, Newspaper, Radar, RefreshCcw, Search, Trash2 } from 'lucide-react'
+import { ExternalLink, Globe, Image, Link2, MapPin, Newspaper, Phone, Radar, RefreshCcw, Search, Trash2, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
@@ -13,6 +13,16 @@ const PLATFORM_ICONS: Record<string, { icon: ReactNode; color: string }> = {
   github: { icon: <Link2 size={14} />, color: 'text-purple-400 hover:bg-purple-950/40' },
   domain_lookup: { icon: <Globe size={14} />, color: 'text-amber-400 hover:bg-amber-950/40' },
   company_website: { icon: <Globe size={14} />, color: 'text-zinc-400 hover:bg-zinc-800/40' },
+  sec_edgar: { icon: <Globe size={14} />, color: 'text-emerald-300 hover:bg-emerald-950/40' },
+  court_records: { icon: <Search size={14} />, color: 'text-amber-300 hover:bg-amber-950/40' },
+  state_sos: { icon: <MapPin size={14} />, color: 'text-blue-300 hover:bg-blue-950/40' },
+  patent_uspto: { icon: <Link2 size={14} />, color: 'text-purple-300 hover:bg-purple-950/40' },
+  professional_license: { icon: <Globe size={14} />, color: 'text-cyan-300 hover:bg-cyan-950/40' },
+  trademark_uspto: { icon: <Search size={14} />, color: 'text-violet-400 hover:bg-violet-950/40' },
+  phone_public: { icon: <Phone size={14} />, color: 'text-emerald-400 hover:bg-emerald-950/40' },
+  property_records: { icon: <MapPin size={14} />, color: 'text-orange-400 hover:bg-orange-950/40' },
+  public_images: { icon: <Image size={14} />, color: 'text-pink-400 hover:bg-pink-950/40' },
+  associate_public: { icon: <Users size={14} />, color: 'text-indigo-400 hover:bg-indigo-950/40' },
   custom: { icon: <Link2 size={14} />, color: 'text-teal-400 hover:bg-teal-950/40' },
 }
 
@@ -74,7 +84,7 @@ export function DossierLinksRibbon({ contactId }: { contactId: string }) {
   const handleGenerate = async () => {
     setLoading(true)
     try {
-      await api.post(`/cali/contacts/${contactId}/external-links/generate`)
+      await api.post(`/cali/contacts/${contactId}/dossier/expand`)
       await fetchLinks()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Reference generation failed'
@@ -141,7 +151,7 @@ export function DossierLinksRibbon({ contactId }: { contactId: string }) {
         </div>
         <Button variant="secondary" size="sm" disabled={loading} onClick={handleGenerate} className="h-7 text-[11px]">
           <RefreshCcw size={10} className={loading ? 'animate-spin' : ''} />
-          Generate References
+          Expand Dossier
         </Button>
       </div>
 

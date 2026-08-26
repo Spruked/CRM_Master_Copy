@@ -40,8 +40,12 @@ $env:PYTHONPATH = Join-Path $root 'source'
 
 function Test-VivPython([string]$PythonPath) {
   if (-not (Test-Path -LiteralPath $PythonPath)) { return $false }
-  & $PythonPath -c "import fastapi, uvicorn, httpx, pydantic" 2>$null
-  return ($LASTEXITCODE -eq 0)
+  try {
+    & $PythonPath -c "import fastapi, uvicorn, httpx, pydantic" *> $null
+    return ($LASTEXITCODE -eq 0)
+  } catch {
+    return $false
+  }
 }
 
 if (-not (Test-Path -LiteralPath $venvPython)) {
