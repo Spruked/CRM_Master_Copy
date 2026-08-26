@@ -31,7 +31,7 @@ import { Select } from '@/components/ui/select'
 import { Table, Td, Th } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/lib/api'
-import { updateCRMContext } from '@/lib/orb-integration'
+import { updateVIVContext } from '@/lib/orb-integration'
 import { compactDate, initials } from '@/lib/utils'
 import { useBusinessContext } from '@/providers/BusinessContextProvider'
 import type { BusinessRole, Contact, DossierMedia } from '@/types'
@@ -51,7 +51,7 @@ const lifecycleStages = [
   { id: 'lost', label: 'Archive' },
 ]
 const mediaKinds = ['person', 'place', 'building', 'other'] as const
-const primeMailUrl = String(import.meta.env.VITE_PRIME_MAIL_URL || 'http://127.0.0.1:19000').replace(/\/$/, '')
+const vivCommunicationsUrl = String(import.meta.env.VITE_PRIME_MAIL_URL || 'http://127.0.0.1:19000').replace(/\/$/, '')
 
 function field(value?: string | null, fallback = '—') {
   return value && String(value).trim() ? value : fallback
@@ -200,7 +200,7 @@ export default function Contacts() {
   }, [queryClient])
 
   useEffect(() => {
-    updateCRMContext({
+    updateVIVContext({
       currentView: 'contacts',
       activeFilters: {
         search: query,
@@ -229,6 +229,8 @@ export default function Contacts() {
     },
     onSuccess: async (created) => {
       const contactId = created?.id || created?.contact_id
+      const createdEmail = form.email.trim().toLowerCase()
+      const createdName = form.name.trim()
       if (contactId) await api.post('/cali/intelligence/dossiers/packages/ensure', { contact_ids: [String(contactId)] })
       if (businessScope !== 'all' && contactId) {
         await api.post(`/cali/intelligence/contacts/${encodeURIComponent(String(contactId))}/business-role`, {
@@ -238,14 +240,27 @@ export default function Contacts() {
           visibility: 'scoped',
         })
       }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['contacts-intelligence'] }),
+        queryClient.invalidateQueries({ queryKey: ['contact-segments'] }),
+        queryClient.invalidateQueries({ queryKey: ['pipeline'] }),
+      ])
+      const canonicalResponse = await api.get('/cali/intelligence/contacts', {
+        params: {
+          query: createdEmail || createdName || undefined,
+          business_scope: businessScope,
+        },
+      })
+      const canonicalContacts = (canonicalResponse.data?.contacts || []) as Contact[]
+      const canonical = canonicalContacts.find((item) =>
+        (contactId && String(item.id || item.contact_id) === String(contactId)) ||
+        (createdEmail && item.email?.trim().toLowerCase() === createdEmail),
+      ) || canonicalContacts[0] || null
       toast.success('Dossier and package created')
       setForm({ name: '', email: '', phone: '', type: 'professional', stage: '', notes: '', relationship: '', segments: '' })
       setOperationTracked(false)
       setShowAddForm(false)
-      await queryClient.invalidateQueries({ queryKey: ['contacts-intelligence'] })
-      await queryClient.invalidateQueries({ queryKey: ['contact-segments'] })
-      await queryClient.invalidateQueries({ queryKey: ['pipeline'] })
-      setSelectedContact(created)
+      setSelectedContact(canonical)
     },
     onError: (error) => toast.error(error.message),
   })
@@ -362,8 +377,11 @@ export default function Contacts() {
     setShowAddForm(false)
   }
 
-  function openPrimeMail(contact: Contact) {
-    const url = contact.email ? `${primeMailUrl}/?contact=${encodeURIComponent(contact.email)}` : primeMailUrl
+  function openVIVCommunications(contact: Contact) {
+    const params = new URLSearchParams()
+    if (contact.email) params.set('contact', contact.email)
+    if (businessScope && businessScope !== 'all') params.set('business_scope', businessScope)
+    const url = `${vivCommunicationsUrl}${params.toString() ? `/?${params}` : ''}`
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
@@ -371,6 +389,7 @@ export default function Contacts() {
     const params = new URLSearchParams()
     if (contact.id) params.set('contact_id', String(contact.id))
     if (contact.name) params.set('contact', contact.name)
+    if (businessScope && businessScope !== 'all') params.set('business_scope', businessScope)
     navigate(`/calendar${params.toString() ? `?${params}` : ''}`)
   }
 
@@ -519,7 +538,7 @@ export default function Contacts() {
                 {selectedContact.id ? <div className="mt-4"><DossierLinksRibbon contactId={String(selectedContact.id)} /></div> : null}
 
                 <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400">Actions</div>
-                <div className="mt-2 grid grid-cols-2 gap-2"><Button variant="primary" onClick={() => openPrimeMail(selectedContact)} disabled={!selectedContact.email}><Mail className="size-4" />Communications</Button><Button variant="secondary" onClick={() => openCalendar(selectedContact)}><CalendarDays className="size-4" />Event Grid</Button></div>
+                <div className="mt-2 grid grid-cols-2 gap-2"><Button variant="primary" onClick={() => openVIVCommunications(selectedContact)} disabled={!selectedContact.email}><Mail className="size-4" />Communications</Button><Button variant="secondary" onClick={() => openCalendar(selectedContact)}><CalendarDays className="size-4" />Event Grid</Button></div>
               </div>
 
               <div className="flex items-center justify-between border-t border-blue-500/20 bg-[#111d37] px-4 py-3 text-[10px] text-zinc-500"><span>Identity · relationships · communications · evidence</span><span className="flex items-center gap-1.5 font-bold text-emerald-400"><span className="size-1.5 rounded-full bg-emerald-400" />LINKED</span></div>
