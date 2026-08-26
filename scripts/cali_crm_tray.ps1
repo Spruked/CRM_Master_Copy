@@ -15,7 +15,7 @@ public static class VivCrmNativeIcon {
 '@
 
 $root = Split-Path -Parent $PSScriptRoot
-$backendScript = Join-Path $root 'start_crm_backend_wsl.ps1'
+$backendScript = Join-Path $root 'start_crm_backend.ps1'
 $frontendScript = Join-Path $root 'start_crm_frontend.ps1'
 $iconPath = Join-Path $root 'frontend\public\VIVLOGO.png'
 $logDir = Join-Path $env:LOCALAPPDATA 'VIV'
