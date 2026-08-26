@@ -14,12 +14,17 @@ import Escalations from '@/pages/Escalations'
 import OrbAssistant from '@/pages/OrbAssistant'
 import Pipeline from '@/pages/Pipeline'
 import { BusinessContextProvider } from '@/providers/BusinessContextProvider'
-import { CRMProvider } from '@/providers/CRMProvider'
+import { VIVProvider } from '@/providers/VIVProvider'
+
+function splashSeen() {
+  return sessionStorage.getItem('viv_splash_seen') === '1' || sessionStorage.getItem('cali_splash_seen') === '1'
+}
 
 function App() {
-  const [showSplash, setShowSplash] = useState(() => sessionStorage.getItem('cali_splash_seen') !== '1')
+  const [showSplash, setShowSplash] = useState(() => !splashSeen())
 
   function completeSplash() {
+    sessionStorage.setItem('viv_splash_seen', '1')
     sessionStorage.setItem('cali_splash_seen', '1')
     setShowSplash(false)
   }
@@ -28,7 +33,7 @@ function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <BusinessContextProvider>
-          <CRMProvider>
+          <VIVProvider>
             <AnimatePresence mode="wait">
               {showSplash ? <SplashScreen onComplete={completeSplash} /> : null}
             </AnimatePresence>
@@ -51,7 +56,7 @@ function App() {
                 </main>
               </div>
             </div>
-          </CRMProvider>
+          </VIVProvider>
         </BusinessContextProvider>
       </BrowserRouter>
     </ErrorBoundary>
