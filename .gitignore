@@ -48,7 +48,6 @@ crm-wsl.err.log
 _tmp_*
 *.tmp
 *.bak
-structure_tree.txt
 
 # Build/dist/cache
 dist/
