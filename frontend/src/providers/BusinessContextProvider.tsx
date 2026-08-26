@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { updateCRMContext } from '@/lib/orb-integration'
+import { updateVIVContext } from '@/lib/orb-integration'
 
 export type BusinessContextRecord = {
   business_id: string
@@ -18,11 +18,12 @@ type BusinessContextValue = {
   isLoading: boolean
 }
 
-const STORAGE_KEY = 'cali_business_scope'
+const STORAGE_KEY = 'viv_business_scope'
+const LEGACY_STORAGE_KEY = 'cali_business_scope'
 const BusinessContext = createContext<BusinessContextValue | null>(null)
 
 export function BusinessContextProvider({ children }: { children: ReactNode }) {
-  const [businessScope, setBusinessScopeState] = useState(() => localStorage.getItem(STORAGE_KEY) || 'all')
+  const [businessScope, setBusinessScopeState] = useState(() => localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY) || 'all')
 
   const businessesQuery = useQuery({
     queryKey: ['business-contexts'],
@@ -43,10 +44,11 @@ export function BusinessContextProvider({ children }: { children: ReactNode }) {
     const next = value || 'all'
     setBusinessScopeState(next)
     localStorage.setItem(STORAGE_KEY, next)
+    localStorage.setItem(LEGACY_STORAGE_KEY, next)
   }
 
   useEffect(() => {
-    updateCRMContext({
+    updateVIVContext({
       activeFilters: {
         businessScope,
         businessLabel: activeBusiness?.label || 'All',
