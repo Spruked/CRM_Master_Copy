@@ -13,12 +13,13 @@ import { Select } from '@/components/ui/select'
 import { Table, Td, Th } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/lib/api'
-import { updateCRMContext } from '@/lib/orb-integration'
+import { updateVIVContext } from '@/lib/orb-integration'
 import { compactDate } from '@/lib/utils'
+import { useBusinessContext } from '@/providers/BusinessContextProvider'
 import type { EmailMessage } from '@/types'
 
 const folders = ['inbox', 'sent', 'starred', 'archive', 'trash']
-const primeMailUrl = String(import.meta.env.VITE_PRIME_MAIL_URL || 'http://127.0.0.1:19000').replace(/\/$/, '')
+const vivCommunicationsUrl = String(import.meta.env.VITE_PRIME_MAIL_URL || 'http://127.0.0.1:19000').replace(/\/$/, '')
 const folderLabels: Record<string, string> = {
   inbox: 'Inbox',
   sent: 'Sent',
@@ -37,6 +38,7 @@ function extractEmail(value = '') {
 export default function Email() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const { businessScope } = useBusinessContext()
   const [folder, setFolder] = useState('inbox')
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<EmailMessage | null>(null)
@@ -57,34 +59,40 @@ export default function Email() {
   const selectedSenderEmail = extractEmail(selected?.sender || '')
 
   useEffect(() => {
-    updateCRMContext({
+    updateVIVContext({
       currentView: 'email',
       activeFilters: {
         folder,
         search,
+        businessScope,
         selectedEmailId: selected?.id || null,
         selectedSender: selectedSenderEmail || null,
       },
       unreadEmails,
       lastAction: selected ? `selected_email:${selected.id}` : 'email_loaded',
     })
-  }, [folder, search, unreadEmails, selected, selectedSenderEmail])
+  }, [folder, search, businessScope, unreadEmails, selected, selectedSenderEmail])
 
   const sync = useMutation({
     mutationFn: async () => api.post('/cali/crm/external-email/sync', { folder, limit: 75, search: search || undefined }),
     onSuccess: async (response) => {
       toast.success(`Sync processed ${response.data.processed ?? 0} messages`)
-      await queryClient.invalidateQueries({ queryKey: ['external-email'] })
-      await queryClient.invalidateQueries({ queryKey: ['contacts'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['external-email'] }),
+        queryClient.invalidateQueries({ queryKey: ['contacts-intelligence'] }),
+        queryClient.invalidateQueries({ queryKey: ['contact-segments'] }),
+        queryClient.invalidateQueries({ queryKey: ['contact-connections'] }),
+      ])
     },
     onError: (error) => toast.error(error.message),
   })
 
   const send = useMutation({
     mutationFn: async () => api.post('/cali/crm/external-email/send', compose),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Message queued')
       setCompose({ to: '', subject: '', text: '' })
+      await queryClient.invalidateQueries({ queryKey: ['external-email'] })
     },
     onError: (error) => toast.error(error.message),
   })
@@ -100,16 +108,20 @@ export default function Email() {
     send.mutate()
   }
 
-  function openPrimeMail() {
+  function openVIVCommunications() {
     const params = new URLSearchParams()
+    params.set('folder', folder)
     if (selected?.id) params.set('message', String(selected.id))
     if (selectedSenderEmail) params.set('contact', selectedSenderEmail)
-    window.open(`${primeMailUrl}${params.toString() ? `/?${params}` : ''}`, '_blank', 'noopener,noreferrer')
+    if (businessScope && businessScope !== 'all') params.set('business_scope', businessScope)
+    window.open(`${vivCommunicationsUrl}${params.toString() ? `/?${params}` : ''}`, '_blank', 'noopener,noreferrer')
   }
 
   function openSenderDossier() {
     if (!selectedSenderEmail) return
-    navigate(`/contacts?email=${encodeURIComponent(selectedSenderEmail)}`)
+    const params = new URLSearchParams({ email: selectedSenderEmail })
+    if (businessScope && businessScope !== 'all') params.set('business_scope', businessScope)
+    navigate(`/contacts?${params}`)
   }
 
   return (
@@ -119,9 +131,9 @@ export default function Email() {
         detail="Email and message intelligence with dossier correlation, search, triage, and preserved communication history."
         action={
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={openPrimeMail}>
+            <Button variant="secondary" onClick={openVIVCommunications}>
               <ExternalLink className="size-4" />
-              Open Mail
+              Open VIV Communications
             </Button>
             <Button variant="primary" onClick={() => sync.mutate()} disabled={sync.isPending}>
               <RefreshCcw className="size-4" />
@@ -208,7 +220,7 @@ export default function Email() {
                     {selected.body_text || selected.body || 'No body preview.'}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <Button variant="primary" onClick={openPrimeMail}>
+                    <Button variant="primary" onClick={openVIVCommunications}>
                       <ExternalLink className="size-4" />
                       Open Message
                     </Button>
