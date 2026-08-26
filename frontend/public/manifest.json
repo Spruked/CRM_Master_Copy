@@ -1,7 +1,7 @@
 {
-  "name": "CALI CRM",
-  "short_name": "CALI",
-  "description": "Pipeline Intelligence. Orbit Faster. - Your AI-powered revenue command center",
+  "name": "VIV - Vector Intelligence Vault",
+  "short_name": "VIV",
+  "description": "Vector Intelligence Vault - local intelligence command center",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0b0f2a",
@@ -9,19 +9,19 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/CalilogoCRM.png",
+      "src": "/VIVLOGO.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/CalilogoCRM.png",
+      "src": "/VIVLOGO.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/CalilogoCRM.png",
+      "src": "/VIVLOGO.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

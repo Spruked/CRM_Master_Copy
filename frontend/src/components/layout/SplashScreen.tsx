@@ -37,7 +37,7 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
             transition={{ duration: 0.65, ease: 'easeOut' }}
             className="relative mb-8"
           >
-            <img src="/CalilogoCRM.png" alt="CALI CRM" className="size-32 rounded-xl object-cover drop-shadow-[0_0_60px_rgb(0,194,255)]" />
+            <img src="/VIVLOGO.png" alt="VIV" className="size-48 rounded-3xl object-cover brightness-125 saturate-150 drop-shadow-[0_0_96px_rgb(0,194,255)]" />
             <motion.div
               className="absolute inset-0 rounded-full border border-[#7c3aed]/40"
               animate={{ rotate: 360 }}
@@ -56,7 +56,7 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
             transition={{ delay: 0.18 }}
             className="mb-2 text-6xl font-bold tracking-[-3px] text-white"
           >
-            CALI
+            VIV
           </motion.h1>
 
           <motion.p
@@ -65,7 +65,7 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
             transition={{ delay: 0.3 }}
             className="mb-8 text-lg tracking-[4px] text-cyan-300"
           >
-            CRM
+            VECTOR INTELLIGENCE VAULT
           </motion.p>
 
           <motion.p
@@ -74,9 +74,9 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
             transition={{ delay: 0.42 }}
             className="mb-12 max-w-md text-xl leading-tight text-cyan-100/70"
           >
-            Pipeline Intelligence.
+            Life Management & Navigation System
             <br />
-            Orbit Faster.
+            Know before you need to know.
           </motion.p>
 
           <div className="w-80">
@@ -88,7 +88,7 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
               />
             </div>
             <div className="flex justify-between text-xs text-cyan-100/60">
-              <span>INITIALIZING ORB CORE</span>
+              <span>INITIALIZING INTELLIGENCE VAULT</span>
               <span>{Math.floor(progress)}%</span>
             </div>
           </div>
@@ -99,7 +99,7 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
             transition={{ duration: 2, repeat: Infinity }}
             className="mt-12 text-[10px] tracking-widest text-cyan-100/45"
           >
-            YOUR AI-POWERED REVENUE COMMAND CENTER
+            BE SMART. BE INFORMED. BE READY.
           </motion.p>
         </div>
 

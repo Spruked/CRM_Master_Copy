@@ -6,13 +6,13 @@ import type { Pipeline, PipelineItem } from '@/types'
 type PipelineWithItems = Omit<Pipeline, 'leads'> & { leads: PipelineItem[] }
 
 export const pipelineStages = [
-  { id: 'prospect', label: 'Prospect', color: 'bg-slate-700' },
-  { id: 'qualified', label: 'Qualified', color: 'bg-blue-700' },
-  { id: 'contacted', label: 'Contacted', color: 'bg-cyan-500' },
-  { id: 'meeting_scheduled', label: 'Meeting', color: 'bg-violet-600' },
-  { id: 'proposal', label: 'Proposal', color: 'bg-indigo-600' },
-  { id: 'won', label: 'Won', color: 'bg-teal-500' },
-  { id: 'lost', label: 'Lost', color: 'bg-slate-500' },
+  { id: 'prospect', label: 'Horizon', color: 'bg-slate-700' },
+  { id: 'qualified', label: 'Evaluating', color: 'bg-blue-700' },
+  { id: 'contacted', label: 'Engaged', color: 'bg-cyan-500' },
+  { id: 'meeting_scheduled', label: 'Active', color: 'bg-violet-600' },
+  { id: 'proposal', label: 'Advancing', color: 'bg-indigo-600' },
+  { id: 'won', label: 'Established', color: 'bg-teal-500' },
+  { id: 'lost', label: 'Archive', color: 'bg-slate-500' },
 ] as const
 
 export function usePipeline() {
@@ -51,12 +51,15 @@ export function usePipeline() {
         stage,
         next_follow_up_at,
         owner: 'bryan@spruked.com',
-        notes: notes || 'Updated from Pipeline',
+        notes: notes || 'Updated from Operation Board',
       }),
     onSuccess: async () => {
-      toast.success('Pipeline updated')
-      await queryClient.invalidateQueries({ queryKey: ['pipeline'] })
-      await queryClient.invalidateQueries({ queryKey: ['contacts'] })
+      toast.success('Operation Board updated')
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['pipeline'] }),
+        queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+        queryClient.invalidateQueries({ queryKey: ['contacts-intelligence'] }),
+      ])
     },
     onError: (error) => toast.error(error.message),
   })

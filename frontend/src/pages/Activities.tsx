@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/ui/empty'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/lib/api'
-import { updateCRMContext } from '@/lib/orb-integration'
+import { updateVIVContext } from '@/lib/orb-integration'
 import { compactDate } from '@/lib/utils'
 import type { Activity, Contact } from '@/types'
 
@@ -41,10 +41,10 @@ export default function Activities() {
         contact_id: activeContactId,
         activity_type: activityType,
         summary,
-        metadata: { source: 'crm_frontend' },
+        metadata: { source: 'viv_frontend' },
       }),
     onSuccess: async () => {
-      toast.success('Activity logged')
+      toast.success('Timeline event added')
       setSummary('')
       await queryClient.invalidateQueries({ queryKey: ['activities', activeContactId] })
     },
@@ -52,7 +52,7 @@ export default function Activities() {
   })
 
   useEffect(() => {
-    updateCRMContext({
+    updateVIVContext({
       currentView: 'activities',
       selectedContact,
       lastAction: activeContactId ? `activity_feed:${activeContactId}` : 'activity_feed_empty',
@@ -61,13 +61,13 @@ export default function Activities() {
 
   return (
     <div>
-      <SectionHeader title="Activities" detail="Per-contact CRM event trail, notes, email sync events, and operator actions." />
+      <SectionHeader title="Timeline" detail="Chronological record of observations, communications, meetings, follow-ups, signals, and milestones for each dossier." />
 
       <div className="grid gap-5 xl:grid-cols-[1fr_24rem]">
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <CardTitle>Activity Feed</CardTitle>
+              <CardTitle>Intelligence Timeline</CardTitle>
               <Select value={activeContactId} onChange={(event) => setContactId(event.target.value)} className="md:w-80">
                 {contacts.map((contact) => (
                   <option key={contact.id || contact.contact_id || contact.email || contact.name} value={contact.id || contact.contact_id}>
@@ -93,27 +93,28 @@ export default function Activities() {
                 ))}
               </div>
             ) : (
-              <EmptyState title="No activity yet" detail="Select a contact or log the first activity." />
+              <EmptyState title="No timeline events yet" detail="Select a dossier or add its first observation, communication, meeting, or milestone." />
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Log Activity</CardTitle>
+            <CardTitle>Add Timeline Event</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <Select value={activityType} onChange={(event) => setActivityType(event.target.value)}>
-              <option value="note">Note</option>
+              <option value="note">Observation</option>
               <option value="call">Call</option>
               <option value="meeting">Meeting</option>
               <option value="follow_up">Follow-up</option>
-              <option value="email">Email</option>
+              <option value="email">Email Message</option>
+              <option value="signal">Signal</option>
             </Select>
-            <Textarea value={summary} onChange={(event) => setSummary(event.target.value)} placeholder="Activity summary" />
+            <Textarea value={summary} onChange={(event) => setSummary(event.target.value)} placeholder="What happened, changed, or became relevant?" />
             <Button variant="primary" disabled={!activeContactId || !summary.trim() || createActivity.isPending} onClick={() => createActivity.mutate()}>
               <Plus className="size-4" />
-              Log activity
+              Add to Timeline
             </Button>
           </CardContent>
         </Card>

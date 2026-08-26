@@ -40,10 +40,10 @@ def _default_cali_base_path() -> str:
                 remainder = "/".join(parts[3:])
                 return f"{drive}:/{remainder}".rstrip("/")
         return configured
-    if Path("/mnt/r/R_Drive_Substrate/crm").exists():
-        return "/mnt/r/R_Drive_Substrate/crm"
-    if Path("R:/R_Drive_Substrate/crm").exists():
-        return "R:/R_Drive_Substrate/crm"
+    if Path("/mnt/r/Substrate_Vault_R/vaults/r_drive_system_records/crm").exists():
+        return "/mnt/r/Substrate_Vault_R/vaults/r_drive_system_records/crm"
+    if Path("R:/Substrate_Vault_R/vaults/r_drive_system_records/crm").exists():
+        return "R:/Substrate_Vault_R/vaults/r_drive_system_records/crm"
     if Path("/mnt/r").exists():
         return "/mnt/r/crm"
     return "R:/crm"
@@ -125,6 +125,8 @@ class CaliPersonalSKG:
                     end_time TEXT,
                     location TEXT,
                     attendees TEXT,
+                    notes TEXT,
+                    attendee_notes TEXT,
                     priority INTEGER DEFAULT 0,
                     status TEXT DEFAULT 'pending',
                     cali_notified INTEGER DEFAULT 0,
@@ -132,6 +134,12 @@ class CaliPersonalSKG:
                 )
                 """
             )
+            cur.execute("PRAGMA table_info(events)")
+            event_columns = {row[1] for row in cur.fetchall()}
+            if "notes" not in event_columns:
+                cur.execute("ALTER TABLE events ADD COLUMN notes TEXT")
+            if "attendee_notes" not in event_columns:
+                cur.execute("ALTER TABLE events ADD COLUMN attendee_notes TEXT")
             cur.execute(
                 """
                 CREATE TABLE IF NOT EXISTS verification_calls (
@@ -991,6 +999,8 @@ class CaliPersonalSKG:
         end_time: Optional[str] = None,
         location: Optional[str] = None,
         attendees: Optional[List[str]] = None,
+        notes: Optional[str] = None,
+        attendee_notes: Optional[Dict[str, str]] = None,
         priority: int = 0,
     ) -> Dict[str, Any]:
         event_id = self._next_id("evt", {"title": title, "event_type": event_type})
@@ -1000,10 +1010,25 @@ class CaliPersonalSKG:
             cur = conn.cursor()
             cur.execute(
                 """
-                INSERT INTO events (id, title, event_type, start_time, end_time, location, attendees, priority, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO events (
+                    id, title, event_type, start_time, end_time, location,
+                    attendees, notes, attendee_notes, priority, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (event_id, title, event_type, start_time, end_time, location, json.dumps(attendees or []), priority, now),
+                (
+                    event_id,
+                    title,
+                    event_type,
+                    start_time,
+                    end_time,
+                    location,
+                    json.dumps(attendees or []),
+                    notes,
+                    json.dumps(attendee_notes or {}),
+                    priority,
+                    now,
+                ),
             )
             conn.commit()
 
@@ -1036,6 +1061,14 @@ class CaliPersonalSKG:
                     event["attendees"] = []
             else:
                 event["attendees"] = []
+            raw_attendee_notes = event.get("attendee_notes")
+            if raw_attendee_notes:
+                try:
+                    event["attendee_notes"] = json.loads(raw_attendee_notes)
+                except json.JSONDecodeError:
+                    event["attendee_notes"] = {}
+            else:
+                event["attendee_notes"] = {}
 
         return events
 

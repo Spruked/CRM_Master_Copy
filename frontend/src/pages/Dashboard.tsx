@@ -6,9 +6,12 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SectionHeader } from '@/components/SectionHeader'
+import { pipelineStages } from '@/hooks/usePipeline'
 import { api } from '@/lib/api'
-import { updateCRMContext } from '@/lib/orb-integration'
+import { updateVIVContext } from '@/lib/orb-integration'
 import type { UnifiedStatus } from '@/types'
+
+const lifecycleLabels = Object.fromEntries(pipelineStages.map((stage) => [stage.id, stage.label])) as Record<string, string>
 
 function StatCard({ title, value, detail, icon: Icon }: { title: string; value: string | number; detail: string; icon: typeof Server }) {
   const valueText = String(value)
@@ -39,17 +42,21 @@ export default function Dashboard() {
   })
 
   const status = useQuery({
-    queryKey: ['crm-unified-status'],
+    queryKey: ['viv-unified-status'],
     queryFn: async () => (await api.get('/cali/crm/unified/status')).data as UnifiedStatus,
   })
 
   const pipeline = status.data?.crm_pipeline
   const connector = status.data?.crm_email_connector
   const externalEmail = status.data?.external_email
+  const vivApiStatus = health.data?.status || (!status.isError ? 'ok' : 'unknown')
+  const bridgeStatus = externalEmail?.status || (externalEmail?.enabled ? 'degraded' : 'disabled')
+  const bridgeBadge = bridgeStatus === 'online' ? 'success' : 'warning'
+  const bridgeDetail = externalEmail?.detail || externalEmail?.api_base || 'VIV communications bridge'
 
   useEffect(() => {
     if (!pipeline) return
-    updateCRMContext({
+    updateVIVContext({
       currentView: 'dashboard',
       pipelineSummary: {
         total: pipeline.total,
@@ -61,17 +68,17 @@ export default function Dashboard() {
 
   return (
     <div>
-      <SectionHeader title="Pipeline Intelligence. Orbit Faster." detail="Your AI-powered revenue command center." />
+      <SectionHeader title="Command Center" detail="Your current intelligence picture across dossiers, communications, signals, events, and operations." />
 
       <div className="grid gap-4 lg:grid-cols-4">
         {health.isLoading ? (
           Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-36" />)
         ) : (
           <>
-            <StatCard title="CRM API" value={health.data?.status || 'error'} detail={health.data?.service || 'health'} icon={Server} />
-            <StatCard title="Pipeline Leads" value={pipeline?.total ?? 0} detail="active local leads" icon={Users} />
-            <StatCard title="Email Bridge" value={externalEmail?.enabled ? 'enabled' : 'offline'} detail={externalEmail?.api_base || 'prime mail'} icon={Mail} />
-            <StatCard title="Connector" value={connector?.status || 'unknown'} detail="CRM email connector" icon={Activity} />
+            <StatCard title="VIV Core" value={vivApiStatus} detail={health.data?.service || 'protected local intelligence API'} icon={Server} />
+            <StatCard title="Active Dossiers" value={pipeline?.total ?? 0} detail="subjects currently in operational scope" icon={Users} />
+            <StatCard title="Communications Bridge" value={bridgeStatus} detail={bridgeDetail} icon={Mail} />
+            <StatCard title="Connection Mediator" value={connector?.status || 'unknown'} detail="identity and communication handoff" icon={Activity} />
           </>
         )}
       </div>
@@ -79,14 +86,14 @@ export default function Dashboard() {
       <div className="mt-5 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <Card>
           <CardHeader>
-            <CardTitle>Pipeline Snapshot</CardTitle>
-            <CardDescription>Lead distribution by deterministic CRM stage.</CardDescription>
+            <CardTitle>Operational Snapshot</CardTitle>
+            <CardDescription>Current dossier distribution across the VIV lifecycle.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {Object.entries(pipeline?.stages || {}).map(([stage, count]) => (
                 <div key={stage} className="rounded-lg border border-zinc-800 bg-black/30 p-4">
-                  <div className="text-xs uppercase text-zinc-500">{stage.replaceAll('_', ' ')}</div>
+                  <div className="text-xs uppercase text-zinc-500">{lifecycleLabels[stage] || stage.replaceAll('_', ' ')}</div>
                   <div className="mt-2 text-2xl font-semibold text-zinc-100">{count}</div>
                 </div>
               ))}
@@ -97,20 +104,25 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Integration State</CardTitle>
-            <CardDescription>Protected backend surfaces the frontend expects.</CardDescription>
+            <CardTitle>System Connections</CardTitle>
+            <CardDescription>Authorized local services and connected VIV systems.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <div className="flex items-center justify-between rounded-lg border border-zinc-800 p-3">
-              <span className="text-sm text-zinc-400">CRM API</span>
-              <Badge variant={health.data?.status === 'ok' ? 'success' : 'warning'}>{health.data?.status || 'unknown'}</Badge>
+              <span className="text-sm text-zinc-400">VIV core</span>
+              <Badge variant={vivApiStatus === 'ok' ? 'success' : 'warning'}>{vivApiStatus}</Badge>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-zinc-800 p-3">
-              <span className="text-sm text-zinc-400">Prime Mail bridge</span>
-              <Badge variant={externalEmail?.enabled ? 'success' : 'warning'}>{externalEmail?.enabled ? 'enabled' : 'disabled'}</Badge>
+              <span className="text-sm text-zinc-400">Communications bridge</span>
+              <Badge variant={bridgeBadge}>{bridgeStatus}</Badge>
             </div>
+            {externalEmail?.detail ? (
+              <div className="rounded-lg border border-zinc-800 p-3 text-xs text-zinc-500">
+                Communications detail: {externalEmail.detail}
+              </div>
+            ) : null}
             <div className="flex items-center justify-between rounded-lg border border-zinc-800 p-3">
-              <span className="text-sm text-zinc-400">Admin auth</span>
+              <span className="text-sm text-zinc-400">Access control</span>
               <Badge variant={status.isError ? 'warning' : 'success'}>{status.isError ? 'check token' : 'accepted'}</Badge>
             </div>
           </CardContent>

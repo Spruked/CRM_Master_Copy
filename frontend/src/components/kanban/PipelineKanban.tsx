@@ -26,12 +26,12 @@ export default function PipelineKanban() {
     <div className="flex h-full flex-col">
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold text-zinc-100">Sales Pipeline</h2>
-          <p className="mt-1 text-sm text-zinc-500">Drag cards between stages to update the CRM backend.</p>
+          <h2 className="text-2xl font-semibold text-zinc-100">Operation Board</h2>
+          <p className="mt-1 text-sm text-zinc-500">Track dossiers through their current relationship or operation state.</p>
         </div>
         <Button variant="ghost" onClick={() => window.location.reload()}>
           <RefreshCcw className="size-4" />
-          Refresh
+          Refresh Board
         </Button>
       </div>
 

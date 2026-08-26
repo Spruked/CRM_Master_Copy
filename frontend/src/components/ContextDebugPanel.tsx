@@ -1,28 +1,31 @@
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { getCRMContext, type CRMContextPayload } from '@/lib/orb-integration'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { getVIVContext, type VIVContextPayload } from '@/lib/orb-integration'
 
 export function ContextDebugPanel() {
-  const [context, setContext] = useState<CRMContextPayload>(() => getCRMContext())
+  const [context, setContext] = useState<VIVContextPayload>(() => getVIVContext())
 
   useEffect(() => {
     const handler = (event: Event) => {
-      const custom = event as CustomEvent<CRMContextPayload>
+      const custom = event as CustomEvent<VIVContextPayload>
       setContext(custom.detail)
     }
-    window.addEventListener('cali-crm-context-update', handler)
-    return () => window.removeEventListener('cali-crm-context-update', handler)
+    window.addEventListener('viv-context-update', handler)
+    return () => window.removeEventListener('viv-context-update', handler)
   }, [])
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>ORB Context Bridge</CardTitle>
+        <CardTitle>ORB Command Bridge</CardTitle>
+        <CardDescription>
+          Shares the current VIV command context with the ORB node. It is not a dossier store or signal sync.
+        </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="flex items-center justify-between rounded-lg border border-zinc-800 p-3">
-          <span className="text-sm text-zinc-400">View</span>
+          <span className="text-sm text-zinc-400">Terminal</span>
           <Badge>{context.currentView}</Badge>
         </div>
         <div className="flex items-center justify-between rounded-lg border border-zinc-800 p-3">

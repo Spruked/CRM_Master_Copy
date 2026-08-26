@@ -1,0 +1,5 @@
+VIV integration checkpoint
+
+- Windows-native backend verified on Python 3.12.
+- Discover Connections is bounded and candidate-only.
+- Dossier expansion and public-source research remain evidence-first and unverified until reviewed.

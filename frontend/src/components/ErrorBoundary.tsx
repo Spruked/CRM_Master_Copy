@@ -14,7 +14,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('CRM frontend error', error, info)
+    console.error('VIV terminal error', error, info)
   }
 
   render() {
@@ -24,12 +24,12 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
       <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-6">
         <Card className="max-w-xl">
           <CardHeader>
-            <CardTitle>CRM frontend fault</CardTitle>
+            <CardTitle>VIV terminal fault</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <p className="text-sm text-zinc-400">{this.state.error.message}</p>
             <Button variant="primary" onClick={() => window.location.reload()}>
-              Reload
+              Reboot Terminal
             </Button>
           </CardContent>
         </Card>

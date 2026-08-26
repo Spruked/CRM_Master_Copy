@@ -3,6 +3,8 @@ from __future__ import annotations
 import sqlite3
 from typing import Any, Dict, List
 
+from cali_skg.migrations.relationship_intelligence_migration import apply_relationship_intelligence_schema
+
 
 def _existing_columns(cur: sqlite3.Cursor, table: str) -> set[str]:
     cur.execute(f"PRAGMA table_info({table})")
@@ -53,6 +55,26 @@ def run_unified_migration(db_path: str) -> Dict[str, Any]:
             )
             """
         )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS dossier_media (
+                media_id TEXT PRIMARY KEY,
+                contact_id TEXT NOT NULL,
+                party_id TEXT,
+                media_kind TEXT NOT NULL DEFAULT 'person',
+                label TEXT,
+                image_url TEXT NOT NULL,
+                notes TEXT,
+                is_primary INTEGER DEFAULT 0,
+                source TEXT DEFAULT 'operator',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+            )
+            """
+        )
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_dossier_media_contact ON dossier_media(contact_id, is_primary DESC, created_at DESC)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_dossier_media_party ON dossier_media(party_id)")
         cur.execute(
             """
             CREATE TABLE IF NOT EXISTS emails (
@@ -157,6 +179,26 @@ def run_unified_migration(db_path: str) -> Dict[str, Any]:
         if "contact_external_links" in tables:
             cur.execute("CREATE INDEX IF NOT EXISTS idx_external_links_contact ON contact_external_links(contact_id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_external_links_platform ON contact_external_links(platform)")
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS contact_external_link_governance (
+                  node_key TEXT PRIMARY KEY,
+                  contact_id TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+                  platform TEXT NOT NULL,
+                  url TEXT NOT NULL,
+                  risk_level TEXT NOT NULL,
+                  record_type TEXT NOT NULL,
+                  query_mode TEXT NOT NULL,
+                  confidence_score REAL NOT NULL,
+                  requires_review INTEGER NOT NULL DEFAULT 0,
+                  classifier_version TEXT NOT NULL,
+                  generated_at TEXT NOT NULL,
+                  updated_at TEXT NOT NULL,
+                  UNIQUE(contact_id, platform, url)
+                )
+                """
+            )
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_external_link_governance_contact ON contact_external_link_governance(contact_id, risk_level)")
         if "emails" in tables:
             cur.execute("CREATE INDEX IF NOT EXISTS idx_emails_thread ON emails(thread_id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_emails_sender ON emails(sender)")
@@ -169,6 +211,42 @@ def run_unified_migration(db_path: str) -> Dict[str, Any]:
             elif "caller_number" in cols:
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_verification_calls_contact ON verification_calls(caller_number)")
         steps.append("Ensured unified indices")
+
+        # Additive relationship/communications intelligence substrate. This keeps
+        # the legacy tables intact while backfilling them into canonical Party
+        # records so the UI can migrate without a destructive cutover.
+        apply_relationship_intelligence_schema(conn, steps)
+
+        # Durable local-first automation runs. Evidence stays in the existing
+        # evidence/audit substrate; these tables only retain resumable job state.
+        cur.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS dossier_sweep_run (
+              run_id TEXT PRIMARY KEY,
+              business_scope TEXT NOT NULL,
+              max_entities INTEGER NOT NULL,
+              status TEXT NOT NULL,
+              started_at TEXT NOT NULL,
+              completed_at TEXT,
+              contacts_seen INTEGER NOT NULL DEFAULT 0,
+              contacts_processed INTEGER NOT NULL DEFAULT 0,
+              evidence_written INTEGER NOT NULL DEFAULT 0,
+              error_summary TEXT
+            );
+            CREATE TABLE IF NOT EXISTS dossier_sweep_item (
+              run_id TEXT NOT NULL REFERENCES dossier_sweep_run(run_id) ON DELETE CASCADE,
+              contact_id TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+              content_hash TEXT NOT NULL,
+              status TEXT NOT NULL,
+              detail TEXT,
+              processed_at TEXT NOT NULL,
+              PRIMARY KEY (run_id, contact_id)
+            );
+            CREATE INDEX IF NOT EXISTS ix_dossier_sweep_run_status ON dossier_sweep_run(status, started_at DESC);
+            CREATE INDEX IF NOT EXISTS ix_dossier_sweep_item_hash ON dossier_sweep_item(contact_id, content_hash);
+            """
+        )
+        steps.append("Ensured dossier sweep automation tables")
 
         conn.commit()
 

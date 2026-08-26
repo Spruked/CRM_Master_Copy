@@ -32,13 +32,13 @@ export function KanbanCard({ item }: { item: PipelineItem }) {
           <div className="truncate text-sm font-medium text-zinc-100">{item.name}</div>
           <div className="mt-1 flex items-center gap-1 truncate text-xs text-zinc-500">
             <Mail className="size-3" />
-            {item.email || 'No email'}
+            {item.email || 'No origin'}
           </div>
         </div>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Badge variant="muted">{item.type || item.contact_type || 'lead'}</Badge>
+        <Badge variant="muted">{item.type || item.contact_type || 'subject'}</Badge>
         {item.next_follow_up_at ? (
           <span className="inline-flex items-center gap-1 text-xs text-amber-300">
             <Calendar className="size-3" />
