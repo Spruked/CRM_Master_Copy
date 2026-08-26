@@ -25,7 +25,7 @@ export function Topbar() {
           <Building2 className="size-4 text-cyan-300" />
           <Select
             className="h-9 w-48"
-            aria-label="Compartment scope"
+            aria-label="Business context"
             value={businessScope}
             disabled={isLoading}
             onChange={(event) => {
@@ -33,7 +33,7 @@ export function Topbar() {
               void queryClient.invalidateQueries()
             }}
           >
-            <option value="all">All compartments</option>
+            <option value="all">All business contexts</option>
             {businesses.map((business) => (
               <option key={business.business_id} value={business.business_id}>{business.label}</option>
             ))}
