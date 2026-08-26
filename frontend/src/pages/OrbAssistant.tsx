@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/lib/api'
-import { updateCRMContext } from '@/lib/orb-integration'
+import { updateVIVContext } from '@/lib/orb-integration'
 
 type ChatMessage = {
   role: 'operator' | 'orb'
@@ -26,7 +26,7 @@ export default function OrbAssistant() {
     mutationFn: async (text: string) =>
       api.post('/cali/orb/respond', {
         prompt: text,
-        context: { surface: 'cali_crm_frontend', current_path: '/orb' },
+        context: { surface: 'viv_frontend', current_path: '/orb' },
         emotion: 'operator_clear',
       }),
     onSuccess: (response) => {
@@ -38,7 +38,7 @@ export default function OrbAssistant() {
   })
 
   useEffect(() => {
-    updateCRMContext({
+    updateVIVContext({
       currentView: 'orb',
       lastAction: 'orb_chat_open',
     })
