@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/ui/empty'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/lib/api'
-import { updateCRMContext } from '@/lib/orb-integration'
+import { updateVIVContext } from '@/lib/orb-integration'
 import { compactDate } from '@/lib/utils'
 import type { Activity, Contact } from '@/types'
 
@@ -41,7 +41,7 @@ export default function Activities() {
         contact_id: activeContactId,
         activity_type: activityType,
         summary,
-        metadata: { source: 'crm_frontend' },
+        metadata: { source: 'viv_frontend' },
       }),
     onSuccess: async () => {
       toast.success('Timeline event added')
@@ -52,7 +52,7 @@ export default function Activities() {
   })
 
   useEffect(() => {
-    updateCRMContext({
+    updateVIVContext({
       currentView: 'activities',
       selectedContact,
       lastAction: activeContactId ? `activity_feed:${activeContactId}` : 'activity_feed_empty',
