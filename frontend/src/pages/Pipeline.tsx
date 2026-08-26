@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import PipelineKanban from '@/components/kanban/PipelineKanban'
 import { usePipeline } from '@/hooks/usePipeline'
-import { updateCRMContext } from '@/lib/orb-integration'
+import { updateVIVContext } from '@/lib/orb-integration'
 
 export default function Pipeline() {
   const { pipeline } = usePipeline()
@@ -11,7 +11,7 @@ export default function Pipeline() {
       acc[item.crm_stage] = (acc[item.crm_stage] || 0) + 1
       return acc
     }, {})
-    updateCRMContext({
+    updateVIVContext({
       currentView: 'pipeline',
       pipelineSummary: {
         total: pipeline.length,
