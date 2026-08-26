@@ -9,16 +9,22 @@ from cali_skg.api.dossier_package_routes import router as dossier_package_router
 from cali_skg.api.dossier_template_routes import router as dossier_template_router
 from cali_skg.api.identity_operations_routes import router as identity_operations_router
 from cali_skg.api.operations_routes import router as operations_router
+from cali_skg.api.relationship_scan_routes import router as relationship_scan_router
 from cali_skg.api.relationship_routes import (
     router as relationship_intelligence_router,
     verify_admin as relationship_verify_admin,
 )
+from cali_skg.api.research_routes import router as research_router
 from cali_skg.core.cali_personal_skg import get_cali_skg
 from cali_skg.core.dossier_package_store import ensure_all_dossier_packages
 
 # Keep the legacy CALI routes intact and layer the relationship/communications
 # intelligence APIs onto the same local application during the migration.
+# The bounded scan router is deliberately registered first so the existing
+# /cali/intelligence/scan UI action uses the protected incremental implementation.
+app.include_router(relationship_scan_router)
 app.include_router(relationship_intelligence_router)
+app.include_router(research_router)
 app.include_router(communication_router)
 app.include_router(contact_io_router)
 app.include_router(csv_contact_io_router)
