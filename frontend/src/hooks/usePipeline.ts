@@ -55,8 +55,11 @@ export function usePipeline() {
       }),
     onSuccess: async () => {
       toast.success('Operation Board updated')
-      await queryClient.invalidateQueries({ queryKey: ['pipeline'] })
-      await queryClient.invalidateQueries({ queryKey: ['contacts'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['pipeline'] }),
+        queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+        queryClient.invalidateQueries({ queryKey: ['contacts-intelligence'] }),
+      ])
     },
     onError: (error) => toast.error(error.message),
   })
